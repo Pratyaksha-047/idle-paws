@@ -19,7 +19,10 @@
     onPlay: (game) => window.PetBus.post('openGame', { game }),
   });
 
-  window.PetBus.on('env', (env) => world.setEnv(env));
+  window.PetBus.on('env', (env) => {
+    world.setEnv(env);
+    if (!env.floor) petConsole.close();
+  });
   window.PetBus.on('prefs', (prefs) => world.setPrefs(prefs));
   window.PetBus.on('mouse', (mouse) => world.setMouse(mouse));
   window.PetBus.on('outsideClick', () => petConsole.close());

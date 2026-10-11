@@ -35,7 +35,7 @@ final class InputBarLocator {
 
         input = nil
         card = nil
-        guard Date().timeIntervalSince(lastSearch) > 1.5 else { return nil }
+        guard Date().timeIntervalSince(lastSearch) > 0.75 else { return nil }
         lastSearch = Date()
         if let found = search(app: app, window: window) { adopt(found) }
         return current(window: window)

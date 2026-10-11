@@ -20,6 +20,8 @@ final class AppController: NSObject, NSApplicationDelegate {
     private var window: ClaudeWindow?
     private var floor: Floor?
     private var axInFlight = false
+    private var promptSeenAt = Date.distantPast
+    private static let promptGraceSeconds: TimeInterval = 1
     private var lastEnv = ""
     private var lastLeaseAt = Date()
 
@@ -107,16 +109,22 @@ final class AppController: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// With Accessibility working, a missing prompt means something covers it (a dialog,
+    /// a settings page): the pet hides. The fixed-offset floor is only for when AX is unavailable.
     private func applyFloor(input result: InputBarLocator.Result?, window: ClaudeWindow) {
         let frame = window.frame
-        let next: Floor
+        let next: Floor?
         if let result {
+            promptSeenAt = Date()
             let input = result.frame
             let pad = result.isCard ? 0 : prefs.floorPad
             next = Floor(y: (input.minY - frame.minY - pad).rounded(),
                          x0: (input.minX - frame.minX).rounded(),
                          x1: (input.maxX - frame.minX).rounded(),
                          source: "ax")
+        } else if AXIsProcessTrusted() {
+            if Date().timeIntervalSince(promptSeenAt) < Self.promptGraceSeconds { return }
+            next = nil
         } else {
             next = Floor(y: (frame.height - prefs.floorOffset).rounded(), x0: 24, x1: (frame.width - 24).rounded(),
                          source: "offset")
