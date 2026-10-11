@@ -55,7 +55,14 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 </dict>
 </plist>
 PLIST
-codesign --force --sign - --timestamp=none "$APP"
+# A stable identity keeps the Accessibility grant valid across rebuilds; ad-hoc changes every build.
+SIGN_ID="${CLAUDE_PETS_SIGN_ID:-Claude Pets Dev}"
+if security find-identity -p codesigning | grep -q "\"$SIGN_ID\""; then
+  codesign --force --sign "$SIGN_ID" --timestamp=none "$APP"
+else
+  echo "warning: signing identity '$SIGN_ID' not found; ad-hoc signing (Accessibility must be re-granted after each build)" >&2
+  codesign --force --sign - --timestamp=none "$APP"
+fi
 echo "built $APP"
 
 [[ "${1:-}" == "--app" ]] && exit 0
