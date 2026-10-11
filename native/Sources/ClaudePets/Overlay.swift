@@ -11,8 +11,12 @@ final class OverlayWebView: WKWebView {
 }
 
 /// WKScriptMessageHandler retains its target; this breaks the cycle.
-private final class WeakMessageHandler: NSObject, WKScriptMessageHandler {
+final class WeakMessageHandler: NSObject, WKScriptMessageHandler {
     weak var target: WKScriptMessageHandler?
+
+    init(target: WKScriptMessageHandler? = nil) {
+        self.target = target
+    }
 
     func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
         target?.userContentController(controller, didReceive: message)

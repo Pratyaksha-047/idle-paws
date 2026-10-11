@@ -141,13 +141,3 @@ canvas.paw.wiggle { animation: wiggle 0.4s; }
 .game em { color: var(--accent); font-style: normal; font-size: 11px; }
 
 .console footer { margin-top: 10px; color: var(--muted); font-size: 11px; }
-
-.toast {
-  position: absolute;
-  max-width: 252px;
-  background: #1b1b1a;
-  border: 1px solid var(--accent);
-  border-radius: 9px;
-  padding: 8px 10px;
-  font-size: 11px;
-}

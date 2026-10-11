@@ -16,7 +16,7 @@
 
   petConsole = new window.PetConsole(root, world, {
     onChange: () => world.reportHot(),
-    onCopy: (text) => window.PetBus.post('copy', { text }),
+    onPlay: (game) => window.PetBus.post('openGame', { game }),
   });
 
   window.PetBus.on('env', (env) => world.setEnv(env));

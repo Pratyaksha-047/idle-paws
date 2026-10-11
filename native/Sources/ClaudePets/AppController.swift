@@ -16,6 +16,8 @@ final class AppController: NSObject, NSApplicationDelegate {
     private let devMode = ProcessInfo.processInfo.environment["CLAUDE_PETS_DEV"] == "1"
 
     private var overlay: Overlay!
+    private let gamePanel = GamePanel()
+    private var claudeActive = false
     private var prefs = Prefs.load()
     private var window: ClaudeWindow?
     private var floor: Floor?
@@ -86,6 +88,8 @@ final class AppController: NSObject, NSApplicationDelegate {
 
     private func windowChanged(_ window: ClaudeWindow?, active: Bool) {
         self.window = window
+        claudeActive = active
+        gamePanel.place(over: window, active: active)
         guard let window else {
             overlay.hide()
             return
@@ -152,6 +156,7 @@ final class AppController: NSObject, NSApplicationDelegate {
             reply(["ok": true, "claudeWindow": window != nil])
         case "open_game":
             let game = args["game"] as? String ?? "2048"
+            if args["target"] as? String == "floating" { openGame(game) }
             reply(["ok": true, "url": "http://localhost:\(http.port)/\(game)/"])
         case "status":
             reply([
@@ -167,6 +172,12 @@ final class AppController: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func openGame(_ game: String) {
+        guard let url = URL(string: "http://localhost:\(http.port)/\(game)/?embed=1") else { return }
+        gamePanel.open(url: url, over: window)
+        gamePanel.place(over: window, active: claudeActive)
+    }
+
     private func handleWeb(_ message: [String: Any]) {
         switch message["type"] as? String {
         case "ready":
@@ -178,10 +189,8 @@ final class AppController: NSObject, NSApplicationDelegate {
             guard let values = message["prefs"] as? [String: Any] else { return }
             prefs.raw.merge(values) { _, new in new }
             prefs.save()
-        case "copy":
-            guard let text = message["text"] as? String else { return }
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(text, forType: .string)
+        case "openGame":
+            openGame(message["game"] as? String ?? "2048")
         case "log":
             Log.info("web: \(message["message"] ?? "")")
         default:

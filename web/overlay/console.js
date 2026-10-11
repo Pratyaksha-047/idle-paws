@@ -43,15 +43,12 @@
         </section>
         <section>
           <h4>Games</h4>
-          ${GAMES.map((g) => `<button class="game" data-game="${g.id}"><b>${g.name}</b><small>${g.blurb}</small><em>copy link</em></button>`).join('')}
+          ${GAMES.map((g) => `<button class="game" data-game="${g.id}"><b>${g.name}</b><small>${g.blurb}</small><em>▶ Play</em></button>`).join('')}
         </section>
-        <footer>Ask Claude <q>open game</q> to open it in the side browser pane.</footer>`;
+        <footer>Opens on the right of this window. Or ask Claude <q>open game</q> for the side browser pane.</footer>`;
       root.appendChild(this.el);
       this.el.addEventListener('click', (e) => this.onClick(e));
       this.el.addEventListener('mousedown', (e) => e.stopPropagation());
-      this.toast = document.createElement('div');
-      this.toast.className = 'toast hidden';
-      root.appendChild(this.toast);
     }
 
     get open() {
@@ -119,7 +116,11 @@
         this.hooks.onChange();
         return;
       }
-      if (button.dataset.game) return this.copyGame(button.dataset.game);
+      if (button.dataset.game) {
+        this.hooks.onPlay(button.dataset.game);
+        this.close();
+        return;
+      }
       switch (button.dataset.act) {
         case 'close':
           this.close();
@@ -135,23 +136,6 @@
         default:
           break;
       }
-    }
-
-    copyGame(id) {
-      const base = (this.world.env && this.world.env.gameBase) || 'http://localhost:4747/';
-      const url = `${base}${id}/`;
-      this.hooks.onCopy(url);
-      this.flash(`Copied ${url.replace('http://', '')}<br>Open the browser pane (🌐) and paste it.`);
-    }
-
-    flash(html) {
-      this.toast.innerHTML = html;
-      this.toast.classList.remove('hidden');
-      const box = this.el.getBoundingClientRect();
-      this.toast.style.left = `${box.left}px`;
-      this.toast.style.top = `${Math.max(8, box.top - 64)}px`;
-      clearTimeout(this.toastTimer);
-      this.toastTimer = setTimeout(() => this.toast.classList.add('hidden'), 3500);
     }
   }
 

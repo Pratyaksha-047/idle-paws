@@ -144,10 +144,15 @@ const TOOLS = [
   {
     name: 'open_game',
     description:
-      'Open a Claude Pets mini game for the user to play while Claude works. Returns a localhost URL; open it in the built-in browser pane (side panel). Games: 2048.',
+      'Open a Claude Pets mini game for the user to play while Claude works. Games: 2048. ' +
+      'target "browser_pane" (default) returns a localhost URL to open in the built-in browser pane; ' +
+      '"floating" opens it in a panel docked to the right of the Claude window (use when there is no browser pane).',
     inputSchema: {
       type: 'object',
-      properties: { game: { type: 'string', enum: GAMES, default: '2048', description: 'Which game to open.' } },
+      properties: {
+        game: { type: 'string', enum: GAMES, default: '2048', description: 'Which game to open.' },
+        target: { type: 'string', enum: ['browser_pane', 'floating'], default: 'browser_pane', description: 'Where to open it.' },
+      },
       additionalProperties: false,
     },
   },
@@ -164,7 +169,9 @@ const callTool = async (name, args = {}) => {
     case 'open_game': {
       const game = args.game || '2048';
       if (!GAMES.includes(game)) return text(`Unknown game "${game}". Available: ${GAMES.join(', ')}.`, true);
-      const res = await request('open_game', { game });
+      const target = args.target || 'browser_pane';
+      const res = await request('open_game', { game, target });
+      if (target === 'floating') return text(`Opened ${game} in the floating panel on the right of the Claude window.`);
       return text(
         `${res.url}\nOpen this URL in the built-in browser pane (side panel) so the user can play. ` +
           'If no built-in browser is available, give the user the link.',
