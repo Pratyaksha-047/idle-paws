@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>2048 · Claude Pets</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>2048</h1>
+      <div class="scores">
+        <div class="score"><span>Score</span><b id="score">0</b></div>
+        <div class="score"><span>Best</span><b id="best">0</b></div>
+      </div>
+    </header>
+    <div class="actions">
+      <p class="hint">Arrows / WASD / swipe. Join tiles to reach <b>2048</b>.</p>
+      <button id="undo" title="Undo (U)">Undo</button>
+      <button id="new" title="New game (N)">New game</button>
+    </div>
+    <div id="board" class="board" tabindex="0" aria-label="2048 board">
+      <div id="overlay" class="overlay hidden">
+        <p id="overlay-text"></p>
+        <div>
+          <button id="keep-going" class="hidden">Keep going</button>
+          <button id="try-again">New game</button>
+        </div>
+      </div>
+    </div>
+    <footer><a href="../">← Claude Pets games</a></footer>
+  </main>
+  <script type="module" src="ui.js"></script>
+</body>
+</html>
