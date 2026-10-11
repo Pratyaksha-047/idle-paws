@@ -64,6 +64,7 @@ canvas.paw.wiggle { animation: wiggle 0.4s; }
 }
 .particle.heart { color: #f47a92; }
 .particle.zz { color: #b9c4ff; }
+.particle.alert { color: var(--accent); font-size: 200% !important; }
 
 @keyframes float-up {
   0% { opacity: 0; transform: translate(0, 0) scale(0.7); }
@@ -124,6 +125,7 @@ canvas.paw.wiggle { animation: wiggle 0.4s; }
 .seg button:last-child { border-radius: 0 7px 7px 0; }
 
 .swatches { display: flex; gap: 4px; }
+.seg.species button { padding: 3px 7px; font-size: 14px; }
 .swatch { padding: 3px !important; border-radius: 50% !important; }
 .swatch i { display: block; width: 12px; height: 12px; border-radius: 50%; }
 .swatch.on { background: var(--text) !important; }

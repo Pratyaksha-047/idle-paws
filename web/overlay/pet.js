@@ -1,12 +1,13 @@
 // Pet world: behaviour state machine, ball physics, input, and DOM rendering.
 (function () {
-  const { GRID_W, GRID_H, MOUTH, frame, frameCount, paw } = window.PetSprites;
+  const { GRID_W, GRID_H, SPECIES, frame, frameCount, paw } = window.PetSprites;
 
   const GRAVITY = 1800;
   const CLICK_DELAY_MS = 260;
   const DRAG_THRESHOLD = 4;
   const BALL_ART = ['.oo.', 'oRRo', 'oRro', '.oo.'];
-  const FAST_STATES = new Set(['walk', 'run', 'chase', 'carry', 'drag', 'fall']);
+  const FAST_STATES = new Set(['walk', 'run', 'chase', 'carry', 'drag', 'fall', 'hop']);
+  const AIRBORNE = new Set(['drag', 'fall', 'hop']);
 
   const rand = (min, max) => min + Math.random() * (max - min);
   const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
@@ -26,7 +27,7 @@
       this.root = root;
       this.hooks = hooks;
       this.env = null;
-      this.prefs = { color: 'orange', size: 3, speed: 1, mode: 'auto', hidden: false };
+      this.prefs = { species: 'cat', color: 'orange', size: 3, speed: 1, mode: 'auto', hidden: false };
       this.mouse = { x: 0, y: 0, inside: false, movedAt: 0 };
 
       this.pet = { x: 80, y: 0, vy: 0, dir: 1, state: 'sit', timer: 2, target: 0, anim: 0, frame: 0, awake: 0, placed: false, zTimer: 0 };
@@ -76,7 +77,7 @@
         pet.x = floor.x1 - this.size.w - 40;
         pet.y = floor.y;
         pet.placed = true;
-      } else if (pet.state !== 'drag' && pet.state !== 'fall') {
+      } else if (!AIRBORNE.has(pet.state)) {
         if (floor.y > pet.y + 4) {
           this.setState('fall');
         } else {
@@ -87,6 +88,7 @@
 
     setPrefs(prefs) {
       this.prefs = Object.assign({}, this.prefs, prefs);
+      if (!SPECIES[this.prefs.species]) this.prefs.species = 'cat';
       this.lastDraw = '';
       this.hooks.onMouseMode(this.prefs.mode === 'interactive' && !this.prefs.hidden);
     }
@@ -143,6 +145,7 @@
       }
       if (state === 'happy') this.particles('♥', 3);
       if (state === 'fall') pet.vy = 0;
+      if (state === 'hop') pet.vy = -520 * (this.scale / 3);
       if (state === 'sleep') pet.zTimer = 0;
     }
 
@@ -252,11 +255,12 @@
           break;
         }
         case 'fall':
+        case 'hop':
           pet.vy += GRAVITY * dt;
           pet.y += pet.vy * dt;
-          if (pet.y >= floor.y) {
+          if (pet.y >= floor.y && pet.vy > 0) {
             pet.y = floor.y;
-            this.setState('sit');
+            this.setState(pet.state === 'hop' ? 'happy' : 'sit');
           }
           break;
         default:
@@ -271,7 +275,7 @@
         }
       }
 
-      if (pet.state !== 'drag' && pet.state !== 'fall') {
+      if (!AIRBORNE.has(pet.state)) {
         pet.x = clamp(pet.x, floor.x0, Math.max(floor.x0, floor.x1 - this.size.w));
         pet.y = floor.y;
       }
@@ -298,7 +302,7 @@
 
     mouthPoint() {
       const pet = this.pet;
-      const [mx, my] = MOUTH.walk;
+      const [mx, my] = (SPECIES[this.prefs.species] || SPECIES.cat).mouth;
       const s = this.scale;
       const x = pet.dir > 0 ? pet.x + mx * s : pet.x + (GRID_W - mx) * s;
       return { x, y: pet.y - (GRID_H - my) * s };
@@ -401,7 +405,7 @@
       const { w, h } = this.size;
       for (let i = 0; i < count; i++) {
         const el = document.createElement('div');
-        el.className = `particle ${text === 'z' ? 'zz' : 'heart'}`;
+        el.className = `particle ${{ z: 'zz', '!': 'alert' }[text] || 'heart'}`;
         el.textContent = text;
         el.style.left = `${pet.x + w * (pet.dir > 0 ? 0.7 : 0.3) + rand(-10, 10)}px`;
         el.style.top = `${pet.y - h * 0.9}px`;
@@ -412,6 +416,28 @@
       }
     }
 
+    // Reaction to a Claude Code hook: 'done' (session finished) or 'attention' (needs the user).
+    react(kind, project) {
+      const where = project ? ` · ${project}` : '';
+      if (this.prefs.hidden || !this.floor) {
+        this.pawCanvas.classList.remove('wiggle');
+        void this.pawCanvas.offsetWidth;
+        this.pawCanvas.classList.add('wiggle');
+        return;
+      }
+      if (AIRBORNE.has(this.pet.state)) return;
+      if (kind === 'attention') {
+        this.setState('sit');
+        this.particles('!', 1);
+        this.say(`Claude needs you${where} 👀`);
+        return;
+      }
+      if (this.ball.held) this.ball.held = false;
+      this.setState('hop');
+      this.particles('♥', 3);
+      this.say(`Done!${where} ✨`);
+    }
+
     // Speech bubble above the pet for a few seconds.
     say(text) {
       if (this.bubble) this.bubble.remove();
@@ -419,13 +445,21 @@
       bubble.className = 'bubble';
       bubble.textContent = text;
       this.root.appendChild(bubble);
+      this.bubble = bubble;
+      this.placeBubble();
+      setTimeout(() => bubble.remove(), 6000);
+    }
+
+    // Keeps the bubble above the pet's head while it moves (e.g. during a hop).
+    placeBubble() {
+      const bubble = this.bubble;
+      if (!bubble || !bubble.isConnected) return;
       const { w, h } = this.size;
       const width = bubble.offsetWidth;
       const maxLeft = (this.env ? this.env.width : window.innerWidth) - width - 8;
+      const top = Math.min(this.pet.y, this.floor ? this.floor.y : this.pet.y) - h - bubble.offsetHeight - 6;
       bubble.style.left = `${clamp(this.pet.x + w / 2 - width / 2, 8, maxLeft)}px`;
-      bubble.style.top = `${this.pet.y - h - bubble.offsetHeight - 8}px`;
-      this.bubble = bubble;
-      setTimeout(() => bubble.remove(), 6000);
+      bubble.style.top = `${Math.max(4, top)}px`;
     }
 
     pose() {
@@ -444,6 +478,8 @@
         case 'drag':
         case 'fall':
           return 'drag';
+        case 'hop':
+          return 'stand';
         default:
           return 'sit';
       }
@@ -461,8 +497,9 @@
       const pet = this.pet;
       const { w, h } = this.size;
       const pose = this.pose();
-      const index = pet.frame % frameCount(pose);
-      const key = `${this.prefs.color}:${pose}:${index}:${this.scale}:${pet.dir}`;
+      const { species, color } = this.prefs;
+      const index = pet.frame % frameCount(species, pose);
+      const key = `${species}:${color}:${pose}:${index}:${this.scale}:${pet.dir}`;
       if (key !== this.lastDraw) {
         this.lastDraw = key;
         const canvas = this.petCanvas;
@@ -478,7 +515,7 @@
           ctx.translate(w, 0);
           ctx.scale(-1, 1);
         }
-        ctx.drawImage(frame(this.prefs.color, pose, index), 0, 0, w, h);
+        ctx.drawImage(frame(species, color, pose, index), 0, 0, w, h);
         ctx.restore();
       }
       const transform = `translate(${Math.round(pet.x)}px, ${Math.round(pet.y - h)}px)`;
@@ -487,6 +524,7 @@
         this.petCanvas.style.transform = transform;
       }
       if (this.ball.active) this.drawBall();
+      this.placeBubble();
     }
 
     drawBall() {
@@ -511,14 +549,14 @@
     drawPaw() {
       const canvas = this.pawCanvas;
       const s = this.scale;
-      const key = `${this.prefs.color}:${s}`;
+      const key = `${this.prefs.species}:${this.prefs.color}:${s}`;
       if (canvas.dataset.key !== key) {
         canvas.dataset.key = key;
         canvas.width = 5 * s;
         canvas.height = 6 * s;
         const ctx = canvas.getContext('2d');
         ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(paw(this.prefs.color), 0, 0, 5 * s, 6 * s);
+        ctx.drawImage(paw(this.prefs.species, this.prefs.color), 0, 0, 5 * s, 6 * s);
       }
       const { x1, y } = this.floor;
       canvas.style.left = `${x1 - 5 * s - 12}px`;

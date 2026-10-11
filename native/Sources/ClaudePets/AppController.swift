@@ -164,6 +164,10 @@ final class AppController: NSObject, NSApplicationDelegate {
             reply(["ok": true, "claudeWindow": window != nil])
         case "open_game":
             reply(["ok": true, "url": gameURL(args["game"] as? String)])
+        case "react":
+            let kind = args["kind"] as? String ?? "done"
+            overlay.send("react", ["kind": kind, "project": args["project"] as? String ?? ""])
+            reply(["ok": true])
         case "play":
             openGame(args["game"] as? String)
             reply(["ok": true])

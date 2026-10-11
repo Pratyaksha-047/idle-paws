@@ -1,6 +1,6 @@
 // The game console: pet controls + games list, anchored next to the pet.
 (function () {
-  const COLORS = ['orange', 'claude', 'gray', 'black', 'white'];
+  const { SPECIES, palette } = window.PetSprites;
 
   class PetConsole {
     constructor(root, world, hooks) {
@@ -19,15 +19,18 @@
             <button data-act="ball">🔴 Throw ball</button>
             <button data-act="hide">🙈 Hide pet</button>
           </div>
+          <div class="row"><span class="label">Pet</span>
+            <div class="seg species" data-pref="species">
+              ${Object.entries(SPECIES).map(([id, s]) => `<button data-val="${id}" title="${s.label.split(' ')[1]}">${s.label.split(' ')[0]}</button>`).join('')}
+            </div>
+          </div>
           <div class="row"><span class="label">Mode</span>
             <div class="seg" data-pref="mode">
               <button data-val="auto">Auto</button><button data-val="interactive">Follow me</button>
             </div>
           </div>
           <div class="row"><span class="label">Color</span>
-            <div class="swatches" data-pref="color">
-              ${COLORS.map((c) => `<button data-val="${c}" class="swatch" title="${c}"><i style="background:${window.PetSprites.PALETTES[c].b}"></i></button>`).join('')}
-            </div>
+            <div class="swatches" data-pref="color"></div>
           </div>
           <div class="row"><span class="label">Size</span>
             <div class="seg" data-pref="size">
@@ -91,7 +94,26 @@
       return [r.left, r.top, r.width, r.height];
     }
 
+    // Swatches depend on the species; switching species picks its first colour if needed.
+    renderSwatches() {
+      const { species, color } = this.world.prefs;
+      const palettes = (SPECIES[species] || SPECIES.cat).palettes;
+      if (!palettes[color]) this.world.updatePrefs({ color: Object.keys(palettes)[0] });
+      const group = this.el.querySelector('.swatches');
+      if (group.dataset.species === species) return;
+      group.dataset.species = species;
+      group.innerHTML = Object.keys(palettes)
+        .map((c) => {
+          const colors = palette(species, c);
+          const second = colors.h !== colors.b ? colors.h : colors.b;
+          const fill = `linear-gradient(135deg, ${second} 50%, ${colors.b} 50%)`;
+          return `<button data-val="${c}" class="swatch" title="${c}"><i style="background:${fill}"></i></button>`;
+        })
+        .join('');
+    }
+
     sync() {
+      this.renderSwatches();
       const prefs = this.world.prefs;
       this.el.querySelectorAll('[data-pref]').forEach((group) => {
         const value = String(prefs[group.dataset.pref]);

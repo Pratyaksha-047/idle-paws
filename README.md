@@ -1,6 +1,6 @@
 # Claude Pets
 
-A pixel cat that lives on your Claude Desktop window, plus mini games (2048, Sudoku, Minesweeper, Snake, Tetris) for while Claude works. macOS only.
+A pixel pet (cat, dog or duck) that lives on your Claude Desktop window, plus mini games (2048, Sudoku, Minesweeper, Snake, Tetris) for while Claude works. macOS only.
 
 ## How it works
 
@@ -22,8 +22,10 @@ Claude Code    ──(user MCP, stdio)───▶ server/index.js
 
 ## Use
 
-- **Click** the cat: it purrs. **Double-click**: console. **Drag**: move it.
-- Console: throw ball, hide (a paw print stays; double-click it), mode (Auto / Follow me), color, size, speed, **Play games**.
+- **Click** the pet: hearts. **Double-click**: console. **Drag**: move it.
+- **Reacts to Claude Code:** when a session finishes (`Stop` hook) the pet hops and says *Done! · project*; when Claude needs you (`Notification` hook) it shows *!* and *Claude needs you*. Install/remove the hooks with `node scripts/install-hooks.mjs [--remove]` (idempotent, backs up `~/.claude/settings.json`). Chat-tab conversations have no hooks, so they don't trigger reactions.
+- Console: throw ball, hide (a paw print stays; double-click it), pet (cat / dog / duck), mode (Auto / Follow me), colour, size, speed, **Play games**.
+- Pets are built from shape primitives in `web/overlay/sprites.js` (`SPECIES`: poses `stand`/`sit`/`sleep` + palettes).
 - **Play games** drives Claude's own browser pane through Accessibility (Browser toggle → reuse our tab or New tab → type the URL into Page URL → Return) and opens the games menu. No Claude turn involved; works while Claude is busy.
 - Games live in `web/games/<name>/` (`engine.js` = pure logic with tests in `tests/`, `ui.js` = page). Add one by creating the folder, a thumbnail in `web/games/thumbs/`, a card in `web/games/index.html`, and the id in `GAMES` in `server/index.js`.
 - Ask Claude: *open game*, *open console*, *show/hide pet*, *pet status*.
