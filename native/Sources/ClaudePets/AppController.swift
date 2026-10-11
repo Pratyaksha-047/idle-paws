@@ -16,8 +16,6 @@ final class AppController: NSObject, NSApplicationDelegate {
     private let devMode = ProcessInfo.processInfo.environment["CLAUDE_PETS_DEV"] == "1"
 
     private var overlay: Overlay!
-    private let gamePanel = GamePanel()
-    private var claudeActive = false
     private var prefs = Prefs.load()
     private var window: ClaudeWindow?
     private var floor: Floor?
@@ -88,8 +86,6 @@ final class AppController: NSObject, NSApplicationDelegate {
 
     private func windowChanged(_ window: ClaudeWindow?, active: Bool) {
         self.window = window
-        claudeActive = active
-        gamePanel.place(over: window, active: active)
         guard let window else {
             overlay.hide()
             return
@@ -156,8 +152,10 @@ final class AppController: NSObject, NSApplicationDelegate {
             reply(["ok": true, "claudeWindow": window != nil])
         case "open_game":
             let game = args["game"] as? String ?? "2048"
-            if args["target"] as? String == "floating" { openGame(game) }
             reply(["ok": true, "url": "http://localhost:\(http.port)/\(game)/"])
+        case "play":
+            openGame(args["game"] as? String ?? "2048")
+            reply(["ok": true])
         case "status":
             reply([
                 "ok": true,
@@ -172,10 +170,18 @@ final class AppController: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// Drives Claude's browser pane to the game; on failure the cat says so.
     private func openGame(_ game: String) {
-        guard let url = URL(string: "http://localhost:\(http.port)/\(game)/?embed=1") else { return }
-        gamePanel.open(url: url, over: window)
-        gamePanel.place(over: window, active: claudeActive)
+        guard let pid = tracker.pid else { return }
+        let url = "http://localhost:\(http.port)/\(game)/"
+        axQueue.async { [weak self] in
+            let result = BrowserPaneOpener.open(url: url, tabTitleHint: "Claude Pets", pid: pid)
+            DispatchQueue.main.async {
+                guard case .failure(let failure) = result else { return }
+                Log.info("browser pane: \(failure)")
+                self?.overlay.send("notice", ["text": "Couldn't open the browser pane (\(failure)). Ask Claude “open game”."])
+            }
+        }
     }
 
     private func handleWeb(_ message: [String: Any]) {

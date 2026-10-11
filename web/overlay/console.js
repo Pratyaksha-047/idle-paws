@@ -45,7 +45,7 @@
           <h4>Games</h4>
           ${GAMES.map((g) => `<button class="game" data-game="${g.id}"><b>${g.name}</b><small>${g.blurb}</small><em>▶ Play</em></button>`).join('')}
         </section>
-        <footer>Opens on the right of this window. Or ask Claude <q>open game</q> for the side browser pane.</footer>`;
+        <footer>Games open in the side browser pane.</footer>`;
       root.appendChild(this.el);
       this.el.addEventListener('click', (e) => this.onClick(e));
       this.el.addEventListener('mousedown', (e) => e.stopPropagation());

@@ -58,6 +58,27 @@ enum Probe {
         }
     }
 
+    /// `--probe-buttons`: dumps buttons and text fields with their labels and actions.
+    static func dumpButtons() {
+        guard AX.isTrusted(prompt: true), let app = claudeApp() else { return }
+        AXUIElementSetMessagingTimeout(app, 1.0)
+        AX.enableManualAccessibility(app, true)
+        var queue = (AX.attribute(app, kAXWindowsAttribute) as? [AXUIElement]) ?? []
+        var index = 0
+        while index < queue.count && index < 50000 {
+            let element = queue[index]
+            index += 1
+            let role = AX.role(element) ?? "?"
+            if role == kAXButtonRole || role == kAXTextFieldRole || role == kAXRadioButtonRole || role == kAXCheckBoxRole || role == "AXTab" {
+                var actions: CFArray?
+                AXUIElementCopyActionNames(element, &actions)
+                let names = (actions as? [String])?.joined(separator: ",") ?? "-"
+                Log.info("probe: \(role) title=\(AX.string(element, kAXTitleAttribute) ?? "-") desc=\(AX.string(element, kAXDescriptionAttribute) ?? "-") help=\(AX.string(element, kAXHelpAttribute) ?? "-") value=\(AX.string(element, kAXValueAttribute) ?? "-") frame=\(AX.frame(element).map { "\($0)" } ?? "-") actions=\(names)")
+            }
+            queue.append(contentsOf: AX.children(element))
+        }
+    }
+
     private static func describe(_ element: AXUIElement, label: String) {
         let fields = [
             "role=\(AX.role(element) ?? "-")",

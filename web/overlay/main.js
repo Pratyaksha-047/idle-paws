@@ -23,6 +23,7 @@
   window.PetBus.on('prefs', (prefs) => world.setPrefs(prefs));
   window.PetBus.on('mouse', (mouse) => world.setMouse(mouse));
   window.PetBus.on('outsideClick', () => petConsole.close());
+  window.PetBus.on('notice', ({ text }) => world.say(text));
   window.PetBus.on('command', ({ name }) => {
     if (name === 'show') world.show();
     if (name === 'hide') {

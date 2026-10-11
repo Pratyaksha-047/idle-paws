@@ -117,8 +117,3 @@ footer { margin-top: 16px; font-size: 12px; }
 footer a { color: var(--muted); text-decoration: none; }
 footer a:hover { color: var(--accent); }
 
-.close { margin-left: 8px; padding: 4px 9px; color: var(--muted); }
-.close:hover { color: var(--text); }
-body.embed main { width: calc(100vw - 32px); margin: 16px auto; }
-body.embed h1 { font-size: 36px; }
-body.embed footer { display: none; }

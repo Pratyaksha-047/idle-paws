@@ -412,6 +412,22 @@
       }
     }
 
+    // Speech bubble above the pet for a few seconds.
+    say(text) {
+      if (this.bubble) this.bubble.remove();
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.textContent = text;
+      this.root.appendChild(bubble);
+      const { w, h } = this.size;
+      const width = bubble.offsetWidth;
+      const maxLeft = (this.env ? this.env.width : window.innerWidth) - width - 8;
+      bubble.style.left = `${clamp(this.pet.x + w / 2 - width / 2, 8, maxLeft)}px`;
+      bubble.style.top = `${this.pet.y - h - bubble.offsetHeight - 8}px`;
+      this.bubble = bubble;
+      setTimeout(() => bubble.remove(), 6000);
+    }
+
     pose() {
       switch (this.pet.state) {
         case 'walk':

@@ -8,6 +8,11 @@ if arguments.contains("--probe-ax") {
     Log.flush()
     exit(0)
 }
+if arguments.contains("--probe-buttons") {
+    Probe.dumpButtons()
+    Log.flush()
+    exit(0)
+}
 if let flag = arguments.firstIndex(of: "--ax"), flag + 1 < arguments.count {
     Probe.setAccessibility(arguments[flag + 1] == "on")
     Log.flush()

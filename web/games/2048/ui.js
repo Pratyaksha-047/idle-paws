@@ -11,16 +11,6 @@ const SWIPE_MIN = 30;
 const $ = (id) => document.getElementById(id);
 const board = $('board');
 
-// Inside the Claude Pets floating panel the native side handles closing.
-const nativeBridge = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.bridge;
-const embedded = new URLSearchParams(location.search).has('embed') && Boolean(nativeBridge);
-const closePanel = () => nativeBridge.postMessage({ type: 'closeGame' });
-if (embedded) {
-  document.body.classList.add('embed');
-  $('close').classList.remove('hidden');
-  $('close').addEventListener('click', closePanel);
-}
-
 const load = () => {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
@@ -105,10 +95,6 @@ const undo = () => {
 
 document.addEventListener('keydown', (event) => {
   if (event.metaKey || event.ctrlKey || event.altKey) return;
-  if (event.key === 'Escape' && embedded) {
-    closePanel();
-    return;
-  }
   const dir = KEYS[event.key] || KEYS[event.key.toLowerCase()];
   if (dir) {
     event.preventDefault();

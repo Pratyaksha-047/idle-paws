@@ -141,3 +141,19 @@ canvas.paw.wiggle { animation: wiggle 0.4s; }
 .game em { color: var(--accent); font-style: normal; font-size: 11px; }
 
 .console footer { margin-top: 10px; color: var(--muted); font-size: 11px; }
+
+.bubble {
+  position: absolute;
+  max-width: 240px;
+  padding: 7px 10px;
+  background: var(--bg);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  font-size: 11px;
+  pointer-events: none;
+  animation: bubble-in 0.15s ease-out;
+}
+
+@keyframes bubble-in {
+  from { opacity: 0; transform: translateY(4px); }
+}
