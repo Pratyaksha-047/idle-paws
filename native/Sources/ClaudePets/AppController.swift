@@ -107,11 +107,13 @@ final class AppController: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func applyFloor(input: CGRect?, window: ClaudeWindow) {
+    private func applyFloor(input result: InputBarLocator.Result?, window: ClaudeWindow) {
         let frame = window.frame
         let next: Floor
-        if let input {
-            next = Floor(y: (input.minY - frame.minY - prefs.floorPad).rounded(),
+        if let result {
+            let input = result.frame
+            let pad = result.isCard ? 0 : prefs.floorPad
+            next = Floor(y: (input.minY - frame.minY - pad).rounded(),
                          x0: (input.minX - frame.minX).rounded(),
                          x1: (input.maxX - frame.minX).rounded(),
                          source: "ax")

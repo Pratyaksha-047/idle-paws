@@ -22,6 +22,10 @@ enum AX {
         (attribute(element, kAXChildrenAttribute) as? [AXUIElement]) ?? []
     }
 
+    static func classes(_ element: AXUIElement) -> [String] {
+        (attribute(element, "AXDOMClassList") as? [String]) ?? []
+    }
+
     static func role(_ element: AXUIElement) -> String? {
         string(element, kAXRoleAttribute)
     }

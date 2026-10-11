@@ -2,35 +2,43 @@ import ApplicationServices
 import Foundation
 
 /// Finds Claude's prompt input through the Accessibility tree.
-/// Not thread-safe: call from one serial queue.
+/// The prompt is a ProseMirror text area labelled "Prompt"; its visible card is the
+/// nearest ancestor with the `rounded-composer` class. Not thread-safe: use one serial queue.
 final class InputBarLocator {
-    static let minInputWidth: CGFloat = 250
+    struct Result {
+        /// Global CG coordinates.
+        let frame: CGRect
+        /// True when `frame` is the composer card; false when it is the bare text area.
+        let isCard: Bool
+    }
+
+    private static let minInputWidth: CGFloat = 200
     private static let searchBudget = 6000
+    private static let cardClass = "rounded-composer"
 
     private var pid: pid_t = 0
     private var app: AXUIElement?
-    private var cached: AXUIElement?
+    private var input: AXUIElement?
+    private var card: AXUIElement?
     private var lastSearch = Date.distantPast
 
-    /// Returns the input's frame in global CG coordinates, or nil when unavailable.
-    func locate(pid: pid_t, window: CGRect) -> CGRect? {
+    func locate(pid: pid_t, window: CGRect) -> Result? {
         guard AXIsProcessTrusted() else { return nil }
         if pid != self.pid || app == nil { attach(pid) }
         guard let app else { return nil }
 
-        if let focused = AX.element(app, kAXFocusedUIElementAttribute),
-           let frame = Self.inputFrame(focused, window: window) {
-            cached = focused
-            return frame
+        if let focused = AX.element(app, kAXFocusedUIElementAttribute), Self.isPrompt(focused, window: window),
+           input.map({ !CFEqual($0, focused) }) ?? true {
+            adopt(focused)
         }
-        if let element = cached, let frame = Self.inputFrame(element, window: window) {
-            return frame
-        }
-        cached = nil
+        if let result = current(window: window) { return result }
+
+        input = nil
+        card = nil
         guard Date().timeIntervalSince(lastSearch) > 1.5 else { return nil }
         lastSearch = Date()
-        cached = search(app: app, window: window)
-        return cached.flatMap { Self.inputFrame($0, window: window) }
+        if let found = search(app: app, window: window) { adopt(found) }
+        return current(window: window)
     }
 
     private func attach(_ pid: pid_t) {
@@ -40,18 +48,42 @@ final class InputBarLocator {
         let result = AX.enableManualAccessibility(element, true)
         Log.info("ax: attached pid=\(pid) manualAccessibility=\(result.rawValue)")
         app = element
-        cached = nil
+        input = nil
+        card = nil
     }
 
-    private static func inputFrame(_ element: AXUIElement, window: CGRect) -> CGRect? {
+    private func adopt(_ element: AXUIElement) {
+        input = element
+        card = Self.composerCard(of: element)
+    }
+
+    private func current(window: CGRect) -> Result? {
+        guard let input, Self.isPrompt(input, window: window) else { return nil }
+        if let card, let frame = AX.frame(card), frame.width >= Self.minInputWidth {
+            return Result(frame: frame, isCard: true)
+        }
+        return AX.frame(input).map { Result(frame: $0, isCard: false) }
+    }
+
+    private static func isPrompt(_ element: AXUIElement, window: CGRect) -> Bool {
         guard AX.role(element) == kAXTextAreaRole,
               let frame = AX.frame(element),
               frame.width >= minInputWidth,
-              window.contains(CGPoint(x: frame.midX, y: frame.midY)) else { return nil }
-        return frame
+              window.contains(CGPoint(x: frame.midX, y: frame.midY)) else { return false }
+        return AX.string(element, kAXDescriptionAttribute) == "Prompt" || AX.classes(element).contains("ProseMirror")
     }
 
-    /// Breadth-first walk of the focused window; picks the lowest wide text area.
+    private static func composerCard(of element: AXUIElement) -> AXUIElement? {
+        var current = AX.element(element, kAXParentAttribute)
+        for _ in 0..<8 {
+            guard let node = current else { return nil }
+            if AX.classes(node).contains(where: { $0.hasPrefix(cardClass) }) { return node }
+            current = AX.element(node, kAXParentAttribute)
+        }
+        return nil
+    }
+
+    /// Breadth-first walk of the focused window; picks the lowest prompt (the active pane's).
     private func search(app: AXUIElement, window: CGRect) -> AXUIElement? {
         let started = Date()
         var queue: [AXUIElement] = []
@@ -61,19 +93,20 @@ final class InputBarLocator {
             queue.append(contentsOf: (AX.attribute(app, kAXWindowsAttribute) as? [AXUIElement]) ?? [])
         }
         var index = 0
-        var best: (element: AXUIElement, frame: CGRect)?
+        var best: (element: AXUIElement, y: CGFloat)?
         while index < queue.count && index < Self.searchBudget {
             let element = queue[index]
             index += 1
             let role = AX.role(element)
             if role == kAXStaticTextRole { continue }
-            if let frame = Self.inputFrame(element, window: window), frame.minY > (best?.frame.minY ?? -.infinity) {
-                best = (element, frame)
+            if role == kAXTextAreaRole, Self.isPrompt(element, window: window), let frame = AX.frame(element),
+               frame.minY > (best?.y ?? -.infinity) {
+                best = (element, frame.minY)
             }
             queue.append(contentsOf: AX.children(element))
         }
         let ms = Int(Date().timeIntervalSince(started) * 1000)
-        Log.info("ax: search visited=\(index) found=\(best.map { "\($0.frame)" } ?? "none") in \(ms)ms")
+        Log.info("ax: search visited=\(index) found=\(best != nil) in \(ms)ms")
         return best?.element
     }
 }
