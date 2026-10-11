@@ -1,7 +1,6 @@
 // The game console: pet controls + games list, anchored next to the pet.
 (function () {
   const COLORS = ['orange', 'claude', 'gray', 'black', 'white'];
-  const GAMES = [{ id: '2048', name: '2048', blurb: 'Slide & merge tiles' }];
 
   class PetConsole {
     constructor(root, world, hooks) {
@@ -41,11 +40,8 @@
             </div>
           </div>
         </section>
-        <section>
-          <h4>Games</h4>
-          ${GAMES.map((g) => `<button class="game" data-game="${g.id}"><b>${g.name}</b><small>${g.blurb}</small><em>▶ Play</em></button>`).join('')}
-        </section>
-        <footer>Games open in the side browser pane.</footer>`;
+        <button class="play" data-act="play">▶ Play games</button>
+        <footer>Opens in the side browser pane.</footer>`;
       root.appendChild(this.el);
       this.el.addEventListener('click', (e) => this.onClick(e));
       this.el.addEventListener('mousedown', (e) => e.stopPropagation());
@@ -116,13 +112,12 @@
         this.hooks.onChange();
         return;
       }
-      if (button.dataset.game) {
-        this.hooks.onPlay(button.dataset.game);
-        this.close();
-        return;
-      }
       switch (button.dataset.act) {
         case 'close':
+          this.close();
+          break;
+        case 'play':
+          this.hooks.onPlay();
           this.close();
           break;
         case 'ball':

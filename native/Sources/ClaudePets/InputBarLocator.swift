@@ -35,7 +35,7 @@ final class InputBarLocator {
 
         input = nil
         card = nil
-        guard Date().timeIntervalSince(lastSearch) > 0.75 else { return nil }
+        guard Date().timeIntervalSince(lastSearch) > 0.3 else { return nil }
         lastSearch = Date()
         if let found = search(app: app, window: window) { adopt(found) }
         return current(window: window)
@@ -106,7 +106,7 @@ final class InputBarLocator {
             queue.append(contentsOf: AX.children(element))
         }
         let ms = Int(Date().timeIntervalSince(started) * 1000)
-        Log.info("ax: search visited=\(index) found=\(best != nil) in \(ms)ms")
+        if best != nil { Log.info("ax: search visited=\(index) found in \(ms)ms") }
         return best?.element
     }
 }

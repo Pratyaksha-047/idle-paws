@@ -7,7 +7,7 @@ import Foundation
 /// Blocking; call from a background serial queue.
 enum BrowserPaneOpener {
     enum Failure: Error, CustomStringConvertible {
-        case notTrusted, noWindow, noToggle, paneDidNotOpen, noNewTabButton, noURLField
+        case notTrusted, noWindow, noToggle, paneDidNotOpen, noNewTabButton, noURLField, urlNotEntered
 
         var description: String {
             switch self {
@@ -17,6 +17,7 @@ enum BrowserPaneOpener {
             case .paneDidNotOpen: return "browser pane did not open"
             case .noNewTabButton: return "New tab button not found"
             case .noURLField: return "Page URL field not found"
+            case .urlNotEntered: return "could not enter the URL"
             }
         }
     }
@@ -37,13 +38,14 @@ enum BrowserPaneOpener {
         }
         guard let pane else { return .failure(.paneDidNotOpen) }
 
-        if let tab = find(in: pane, role: kAXRadioButtonRole, where: { AX.string($0, kAXTitleAttribute)?.contains(tabTitleHint) == true }) {
-            AXUIElementPerformAction(tab, kAXPressAction as CFString)
-            return .success(())
+        // Reuse our tab if one is open (no duplicates), otherwise use an empty tab or open a new one.
+        let ownTab = find(in: pane, role: kAXRadioButtonRole, where: { AX.string($0, kAXTitleAttribute)?.contains(tabTitleHint) == true })
+        if let ownTab {
+            AXUIElementPerformAction(ownTab, kAXPressAction as CFString)
+            Thread.sleep(forTimeInterval: 0.1)
         }
-
         guard var field = urlField(in: pane) else { return .failure(.noURLField) }
-        if !(AX.string(field, kAXValueAttribute) ?? "").isEmpty {
+        if ownTab == nil && !(AX.string(field, kAXValueAttribute) ?? "").isEmpty {
             guard let newTab = find(in: pane, role: kAXButtonRole, description: "New tab") else { return .failure(.noNewTabButton) }
             AXUIElementPerformAction(newTab, kAXPressAction as CFString)
             guard let fresh = poll(timeout: 1.0, { urlField(in: pane).flatMap { (AX.string($0, kAXValueAttribute) ?? "").isEmpty ? $0 : nil } }) else {
@@ -52,12 +54,23 @@ enum BrowserPaneOpener {
             field = fresh
         }
 
-        AXUIElementSetAttributeValue(field, kAXFocusedAttribute as CFString, kCFBooleanTrue)
-        Thread.sleep(forTimeInterval: 0.05)
-        Keyboard.press(CGKeyCode(kVK_ANSI_A), flags: .maskCommand, pid: pid)
-        Keyboard.type(url, pid: pid)
+        guard enter(url, into: field, pid: pid) else { return .failure(.urlNotEntered) }
         Keyboard.press(CGKeyCode(kVK_Return), pid: pid)
         return .success(())
+    }
+
+    /// Types the URL, then reads the field back; falls back to setting the value directly.
+    /// Return is only pressed by the caller once the field holds exactly `url`.
+    private static func enter(_ url: String, into field: AXUIElement, pid: pid_t) -> Bool {
+        AXUIElementSetAttributeValue(field, kAXFocusedAttribute as CFString, kCFBooleanTrue)
+        let focused = poll(timeout: 0.5) { (AX.attribute(field, kAXFocusedAttribute) as? Bool) == true ? true : nil }
+        if focused == nil { return false }
+        Thread.sleep(forTimeInterval: 0.1)
+        Keyboard.press(CGKeyCode(kVK_ANSI_A), flags: .maskCommand, pid: pid)
+        Keyboard.type(url, pid: pid)
+        if poll(timeout: 0.4, { AX.string(field, kAXValueAttribute) == url ? true : nil }) != nil { return true }
+        AXUIElementSetAttributeValue(field, kAXValueAttribute as CFString, url as CFString)
+        return poll(timeout: 0.4) { AX.string(field, kAXValueAttribute) == url ? true : nil } != nil
     }
 
     private static func browserPane(in window: AXUIElement) -> AXUIElement? {
@@ -108,6 +121,7 @@ enum Keyboard {
             let event = CGEvent(keyboardEventSource: source, virtualKey: key, keyDown: down)
             event?.flags = flags
             event?.postToPid(pid)
+            usleep(4000)
         }
     }
 
@@ -118,6 +132,7 @@ enum Keyboard {
                 let event = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: down)
                 event?.keyboardSetUnicodeString(stringLength: 1, unicodeString: &unit)
                 event?.postToPid(pid)
+                usleep(4000)
             }
         }
     }

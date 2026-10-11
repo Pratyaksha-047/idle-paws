@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200">
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3a2a22"/><stop offset="1" stop-color="#1f1e1d"/></linearGradient></defs>
+  <rect width="320" height="200" fill="url(#bg)"/>
+  <g transform="translate(150 40) rotate(-8)" font-family="-apple-system, Helvetica, sans-serif" font-weight="800" text-anchor="middle">
+    <rect x="0" y="0" width="62" height="62" rx="10" fill="#efcd52"/><text x="31" y="41" font-size="20" fill="#1f1e1d">2048</text>
+    <rect x="70" y="0" width="62" height="62" rx="10" fill="#d94f34"/><text x="101" y="44" font-size="28" fill="#fff">64</text>
+    <rect x="0" y="70" width="62" height="62" rx="10" fill="#c46a43"/><text x="31" y="114" font-size="28" fill="#fff">16</text>
+    <rect x="70" y="70" width="62" height="62" rx="10" fill="#5a4f44"/><text x="101" y="114" font-size="30" fill="#ece9df">4</text>
+  </g>
+</svg>

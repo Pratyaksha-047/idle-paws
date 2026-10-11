@@ -21,7 +21,7 @@ final class AppController: NSObject, NSApplicationDelegate {
     private var floor: Floor?
     private var axInFlight = false
     private var promptSeenAt = Date.distantPast
-    private static let promptGraceSeconds: TimeInterval = 1
+    private static let promptGraceSeconds: TimeInterval = 0.3
     private var lastEnv = ""
     private var lastLeaseAt = Date()
 
@@ -130,6 +130,10 @@ final class AppController: NSObject, NSApplicationDelegate {
                          source: "offset")
         }
         if next != floor {
+            if (next == nil) != (floor == nil) {
+                let ms = Int(Date().timeIntervalSince(promptSeenAt) * 1000)
+                Log.info("floor: \(next == nil ? "hidden \(ms)ms after prompt last seen" : "shown")")
+            }
             floor = next
             pushEnv()
         }
@@ -159,10 +163,9 @@ final class AppController: NSObject, NSApplicationDelegate {
             overlay.send("command", ["name": command])
             reply(["ok": true, "claudeWindow": window != nil])
         case "open_game":
-            let game = args["game"] as? String ?? "2048"
-            reply(["ok": true, "url": "http://localhost:\(http.port)/\(game)/"])
+            reply(["ok": true, "url": gameURL(args["game"] as? String)])
         case "play":
-            openGame(args["game"] as? String ?? "2048")
+            openGame(args["game"] as? String)
             reply(["ok": true])
         case "status":
             reply([
@@ -178,10 +181,16 @@ final class AppController: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// Drives Claude's browser pane to the game; on failure the cat says so.
-    private func openGame(_ game: String) {
+    /// Games menu when `game` is nil, else that game's page.
+    private func gameURL(_ game: String?) -> String {
+        guard let game, !game.isEmpty else { return "http://localhost:\(http.port)/" }
+        return "http://localhost:\(http.port)/\(game)/"
+    }
+
+    /// Drives Claude's browser pane to the games; on failure the cat says so.
+    private func openGame(_ game: String?) {
         guard let pid = tracker.pid else { return }
-        let url = "http://localhost:\(http.port)/\(game)/"
+        let url = gameURL(game)
         axQueue.async { [weak self] in
             let result = BrowserPaneOpener.open(url: url, tabTitleHint: "Claude Pets", pid: pid)
             DispatchQueue.main.async {
@@ -204,7 +213,7 @@ final class AppController: NSObject, NSApplicationDelegate {
             prefs.raw.merge(values) { _, new in new }
             prefs.save()
         case "openGame":
-            openGame(message["game"] as? String ?? "2048")
+            openGame(message["game"] as? String)
         case "log":
             Log.info("web: \(message["message"] ?? "")")
         default:

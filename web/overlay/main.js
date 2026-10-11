@@ -16,7 +16,7 @@
 
   petConsole = new window.PetConsole(root, world, {
     onChange: () => world.reportHot(),
-    onPlay: (game) => window.PetBus.post('openGame', { game }),
+    onPlay: () => window.PetBus.post('openGame'),
   });
 
   window.PetBus.on('env', (env) => {

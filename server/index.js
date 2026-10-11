@@ -17,7 +17,7 @@ const APP_EXE = path.join(APP_PATH, 'Contents', 'MacOS', 'ClaudePets');
 const SOCKET_PATH = path.join(os.homedir(), 'Library', 'Application Support', 'claude-pets', 'pets.sock');
 const CLIENT = process.env.CLAUDE_PETS_CLIENT || 'unknown';
 const REQUEST_TIMEOUT_MS = 4000;
-const GAMES = ['2048'];
+const GAMES = ['2048', 'sudoku', 'minesweeper', 'snake', 'tetris'];
 
 const log = (...parts) => process.stderr.write(`[claude-pets:${CLIENT}] ${parts.join(' ')}\n`);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -144,12 +144,12 @@ const TOOLS = [
   {
     name: 'open_game',
     description:
-      'Open a Claude Pets mini game for the user to play while Claude works. Returns a localhost URL; ' +
-      'open it in the built-in browser pane (side panel). Games: 2048.',
+      'Open Claude Pets mini games for the user to play while Claude works. Returns a localhost URL; ' +
+      'open it in the built-in browser pane (side panel). Without `game` it opens the games menu.',
     inputSchema: {
       type: 'object',
       properties: {
-        game: { type: 'string', enum: GAMES, default: '2048', description: 'Which game to open.' },
+        game: { type: 'string', enum: GAMES, description: 'Open this game directly instead of the menu.' },
       },
       additionalProperties: false,
     },
@@ -165,8 +165,8 @@ const text = (value, isError = false) => ({ content: [{ type: 'text', text: valu
 const callTool = async (name, args = {}) => {
   switch (name) {
     case 'open_game': {
-      const game = args.game || '2048';
-      if (!GAMES.includes(game)) return text(`Unknown game "${game}". Available: ${GAMES.join(', ')}.`, true);
+      const { game } = args;
+      if (game && !GAMES.includes(game)) return text(`Unknown game "${game}". Available: ${GAMES.join(', ')}.`, true);
       const res = await request('open_game', { game });
       return text(
         `${res.url}\nOpen this URL in the built-in browser pane (side panel) so the user can play. ` +

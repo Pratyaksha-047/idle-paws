@@ -3,8 +3,8 @@
   "name": "claude-pets",
   "display_name": "Claude Pets",
   "version": "0.1.0",
-  "description": "A pixel cat that hangs out on your Claude window, plus mini games (2048) to play while Claude works.",
-  "long_description": "Claude Pets adds a pixel cat that walks, sleeps and plays fetch on top of Claude's input bar. Double-click the cat for the console: pet controls and games. Ask Claude to \"open game\" to play 2048 in the side browser pane. macOS only.",
+  "description": "A pixel cat that hangs out on your Claude window, plus mini games (2048, Sudoku, Minesweeper, Snake, Tetris) to play while Claude works.",
+  "long_description": "Claude Pets adds a pixel cat that walks, sleeps and plays fetch on top of Claude's input bar. Double-click the cat for the console: pet controls and games. Click Play or ask Claude to \"open game\" to pick a game in the side browser pane. macOS only.",
   "author": {
     "name": "Pratyaksha Gupta"
   },
@@ -20,7 +20,7 @@
     }
   },
   "tools": [
-    { "name": "open_game", "description": "Open a mini game (2048) in the browser pane" },
+    { "name": "open_game", "description": "Open the games menu (2048, Sudoku, Minesweeper, Snake, Tetris) in the browser pane" },
     { "name": "open_console", "description": "Open the pet console" },
     { "name": "pet_show", "description": "Show the pet" },
     { "name": "pet_hide", "description": "Hide the pet" },
