@@ -15,7 +15,10 @@
   });
 
   petConsole = new window.PetConsole(root, world, {
-    onChange: () => world.reportHot(),
+    onChange: () => {
+      world.setFrozen(petConsole.open);
+      world.reportHot();
+    },
     onPlay: () => window.PetBus.post('openGame'),
   });
 

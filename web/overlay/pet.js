@@ -34,6 +34,7 @@
       this.ball = { x: 0, y: 0, vx: 0, vy: 0, active: false, held: false };
       this.press = null;
       this.clickTimer = null;
+      this.frozen = false;
       this.lastHot = '';
       this.lastDraw = '';
       this.lastTransform = '';
@@ -101,6 +102,16 @@
     setMouse(mouse) {
       if (Math.abs(mouse.x - this.mouse.x) > 1 || Math.abs(mouse.y - this.mouse.y) > 1) this.mouse.movedAt = performance.now();
       Object.assign(this.mouse, mouse);
+    }
+
+    // While the console is open the pet stays put (sits/blinks, no wandering or following).
+    setFrozen(on) {
+      this.frozen = on;
+      if (on && ['walk', 'run', 'chase', 'carry'].includes(this.pet.state)) {
+        this.ball.active = false;
+        this.ball.held = false;
+        this.setState('sit');
+      }
     }
 
     show() {
@@ -194,7 +205,7 @@
       pet.anim += dt;
       if (pet.state !== 'sleep') pet.awake += dt;
 
-      this.followMouse();
+      if (!this.frozen) this.followMouse();
 
       switch (pet.state) {
         case 'sit':
@@ -229,8 +240,7 @@
           if (this.moveToward(pet.target, v, dt)) {
             if (pet.state === 'carry') {
               this.ball.held = false;
-              this.ball.vx = 0;
-              this.ball.vy = 0;
+              this.ball.active = false;
               this.setState('happy');
             } else {
               this.setState('sit');
@@ -239,12 +249,20 @@
           break;
         }
         case 'chase': {
+          // Run until the mouth (not the body centre) is over the ball; at a wall, get as close as possible.
           const v = 130 * speed * sizeFactor;
-          const target = this.ball.x - this.size.w / 2;
-          this.moveToward(target, v, dt);
+          const { w } = this.size;
+          const facing = this.ball.x >= pet.x + w / 2 ? 1 : -1;
+          const [mx] = (SPECIES[this.prefs.species] || SPECIES.cat).mouth;
+          const mouthOffset = facing > 0 ? mx * this.scale : (GRID_W - mx) * this.scale;
+          const target = clamp(this.ball.x - mouthOffset, floor.x0, Math.max(floor.x0, floor.x1 - w));
+          const arrived = this.moveToward(target, v, dt);
+          if (arrived) pet.dir = facing;
           const mouth = this.mouthPoint();
           const grounded = this.ball.y >= floor.y - this.ballRadius() - 3;
-          if (grounded && Math.abs(mouth.x - this.ball.x) < 10 * sizeFactor) {
+          const reachable = Math.abs(mouth.x - this.ball.x) < 10 * sizeFactor
+            || (arrived && this.ball.x >= pet.x - 4 && this.ball.x <= pet.x + w + 4);
+          if (grounded && reachable) {
             this.ball.held = true;
             this.setState('carry');
             pet.target = this.prefs.mode === 'interactive' && this.mouse.inside
@@ -270,7 +288,7 @@
       if (pet.timer > 0 && ['sit', 'blink', 'happy', 'sleep'].includes(pet.state)) {
         pet.timer -= dt;
         if (pet.timer <= 0) {
-          if (pet.state === 'blink') this.setState('sit');
+          if (pet.state === 'blink' || this.frozen) this.setState('sit');
           else if (!this.followMouse()) this.nextState();
         }
       }

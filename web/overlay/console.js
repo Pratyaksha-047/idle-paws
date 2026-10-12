@@ -143,8 +143,8 @@
           this.close();
           break;
         case 'ball':
-          this.world.throwBall();
           this.close();
+          this.world.throwBall();
           break;
         case 'hide':
           this.world.hide();
