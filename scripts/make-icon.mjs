@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Renders icon.png (512x512) from the pet sprites: dog, cat and duck faces with pause bars
-// above (paw + pause = Pawse) on a solid rounded tile.
+// Renders icon.png (512x512) from the pet sprites: dog, duck and cat sitting together with
+// pause bars above (paw + pause = Pawse) on a solid rounded tile.
 //   node scripts/make-icon.mjs [#background] [output.png]
 import fs from 'node:fs';
 import path from 'node:path';
@@ -12,11 +12,11 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SIZE = 512;
 const BACKGROUND = process.argv[2] || '#f3e4cc';
 const OUTPUT = process.argv[3] || 'icon.png';
-// Head crops in sprite grid cells: [x0, y0, x1, y1] inclusive, from the sitting pose.
-const FACES = [
-  { species: 'dog', color: 'golden', crop: [9, 1, 19, 8], mirror: false },
-  { species: 'cat', color: 'orange', crop: [10, 0, 18, 9], mirror: false },
-  { species: 'duck', color: 'white', crop: [11, 3, 20, 9], mirror: true },
+// Back row first so the front pet draws over it. centerX/baseline in icon pixels.
+const GROUP = [
+  { species: 'dog', color: 'golden', scale: 10, centerX: 118, baseline: 396, mirror: false },
+  { species: 'duck', color: 'white', scale: 10, centerX: 416, baseline: 396, mirror: true },
+  { species: 'cat', color: 'orange', scale: 12, centerX: 252, baseline: 462, mirror: false },
 ];
 
 // sprites.js only touches `document` when rendering to canvas; the grids are pure.
@@ -53,39 +53,35 @@ for (let y = 0; y < SIZE; y++) {
 // Pause bars, top centre.
 const accent = hex('#d97757');
 for (const bx of [218, 268]) {
-  for (let y = 112; y < 188; y++) {
+  for (let y = 56; y < 132; y++) {
     for (let x = bx; x < bx + 26; x++) {
       const cx = Math.min(Math.max(x, bx + 8), bx + 17);
-      const cy = Math.min(Math.max(y, 120), 179);
+      const cy = Math.min(Math.max(y, 64), 123);
       if (Math.hypot(x - cx, y - cy) <= 8) put(x, y, accent);
     }
   }
 }
 
-// Faces cropped from the sprites, closed off with an outline row where the neck was cut,
-// scaled with hard edges and bottom-aligned in a row.
-const faces = FACES.map(({ species, color, crop: [x0, y0, x1, y1], mirror }) => {
-  const grid = SPECIES[species].poses.sit({ tail: 'a', eyes: 'open' });
-  const rows = grid.slice(y0, y1 + 1).map((row) => row.slice(x0, x1 + 1));
-  rows.push(rows[rows.length - 1].map((c) => (c !== '.' && c !== 'o' ? 'o' : '.')));
-  return { rows: mirror ? rows.map((row) => row.slice().reverse()) : rows, colors: palette(species, color) };
-});
-const GAP = 1;
-const artWidth = faces.reduce((sum, f) => sum + f.rows[0].length, 0) + GAP * (faces.length - 1);
-const artHeight = Math.max(...faces.map((f) => f.rows.length));
-const scale = Math.floor(Math.min(460 / artWidth, 260 / artHeight));
-const BASELINE = 404;
-let cursor = Math.round(SIZE / 2 - (artWidth * scale) / 2);
-faces.forEach(({ rows, colors }) => {
-  const top = BASELINE - rows.length * scale;
-  rows.forEach((row, gy) => row.forEach((c, gx) => {
-    if (c === '.') return;
+// Each pet cropped to its own pixels and scaled with hard edges.
+GROUP.forEach(({ species, color, scale, centerX, baseline, mirror }) => {
+  const grid = SPECIES[species].poses.sit({ tail: 'a', eyes: 'happy' });
+  const colors = palette(species, color);
+  const cells = [];
+  grid.forEach((row, y) => row.forEach((c, x) => c !== '.' && cells.push([x, y, c])));
+  const minX = Math.min(...cells.map(([x]) => x));
+  const maxX = Math.max(...cells.map(([x]) => x));
+  const minY = Math.min(...cells.map(([, y]) => y));
+  const maxY = Math.max(...cells.map(([, y]) => y));
+  const w = maxX - minX + 1;
+  const left = Math.round(centerX - (w * scale) / 2);
+  const top = baseline - (maxY - minY + 1) * scale;
+  cells.forEach(([gx, gy, c]) => {
+    const col = mirror ? w - 1 - (gx - minX) : gx - minX;
     const rgb = hex(colors[c]);
     for (let y = 0; y < scale; y++) {
-      for (let x = 0; x < scale; x++) put(cursor + gx * scale + x, top + gy * scale + y, rgb);
+      for (let x = 0; x < scale; x++) put(left + col * scale + x, top + (gy - minY) * scale + y, rgb);
     }
-  }));
-  cursor += (rows[0].length + GAP) * scale;
+  });
 });
 
 // Minimal PNG encoder (RGBA, no filtering).
@@ -120,4 +116,4 @@ const png = Buffer.concat([
   chunk('IEND', Buffer.alloc(0)),
 ]);
 fs.writeFileSync(path.resolve(ROOT, OUTPUT), png);
-console.log(`wrote ${OUTPUT} (${png.length} bytes, ${FACES.map((f) => f.species).join(' + ')}, scale ${scale})`);
+console.log(`wrote ${OUTPUT} (${png.length} bytes, ${GROUP.map((p) => p.species).join(' + ')})`);
