@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Renders icon.png (512x512) from the pet sprites: dog, duck and cat sitting together under
-// a round paw-print button (Idle Paws) on a solid rounded tile.
+// a pixel game controller (pets + games) on a solid rounded tile.
 //   node scripts/make-icon.mjs [#background] [output.png]
 import fs from 'node:fs';
 import path from 'node:path';
@@ -50,23 +50,43 @@ for (let y = 0; y < SIZE; y++) {
   }
 }
 
-// Paw button, top centre: orange disc on a darker rim (3D press) with a cream paw print.
-const BUTTON = { cx: 256, cy: 112, r: 76, depth: 8 };
-const disc = (cx, cy, r, rgb) => {
-  for (let y = Math.floor(cy - r - 1); y <= cy + r + 1; y++) {
-    for (let x = Math.floor(cx - r - 1); x <= cx + r + 1; x++) {
-      const coverage = Math.min(1, Math.max(0, r - Math.hypot(x + 0.5 - cx, y + 0.5 - cy) + 0.5));
-      if (coverage > 0) put(x, y, rgb, Math.round(255 * coverage));
+// Pixel game controller, top centre, drawn like the sprites: shapes, then an automatic outline.
+const PAD_W = 22;
+const PAD_H = 12;
+const pad = Array.from({ length: PAD_H }, () => Array(PAD_W).fill('.'));
+const fill = (x0, y0, x1, y1, c, round = false) => {
+  for (let y = y0; y <= y1; y++) {
+    for (let x = x0; x <= x1; x++) {
+      const corner = (x === x0 || x === x1) && (y === y0 || y === y1);
+      if (!(round && corner)) pad[y][x] = c;
     }
   }
 };
-disc(BUTTON.cx, BUTTON.cy + BUTTON.depth, BUTTON.r, hex('#a9533a'));
-disc(BUTTON.cx, BUTTON.cy, BUTTON.r, hex('#d97757'));
-const cream = hex('#fff6e6');
-disc(BUTTON.cx, BUTTON.cy + 20, 27, cream);
-disc(BUTTON.cx - 14, BUTTON.cy + 28, 22, cream);
-disc(BUTTON.cx + 14, BUTTON.cy + 28, 22, cream);
-[[-37, -10], [-14, -32], [14, -32], [37, -10]].forEach(([dx, dy]) => disc(BUTTON.cx + dx, BUTTON.cy + dy, 13, cream));
+fill(3, 1, 18, 7, 'b', true);
+fill(1, 4, 6, 10, 'b', true);
+fill(15, 4, 20, 10, 'b', true);
+const outlined = pad.map((row, y) => row.map((c, x) => {
+  if (c !== '.') return c;
+  const touches = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => (pad[y + dy] || [])[x + dx] && pad[y + dy][x + dx] !== '.');
+  return touches ? 'o' : '.';
+}));
+const mark = (points, c) => points.forEach(([x, y]) => { outlined[y][x] = c; });
+mark([[5, 3], [4, 4], [5, 4], [6, 4], [5, 5]], 'l');
+mark([[16, 3], [15, 5], [17, 5], [16, 6]], 'p');
+mark([[16, 3]], 'a');
+mark([[9, 5], [12, 5]], 's');
+mark([[2, 9], [3, 10], [4, 10], [16, 10], [17, 10], [19, 9]], 's');
+const PAD_COLORS = { o: '#13323a', b: '#3e8e9a', s: '#2c6b75', l: '#fff6e6', p: '#f3a3ae', a: '#ffd36b' };
+const PAD_SCALE = 10;
+const padLeft = Math.round(SIZE / 2 - (PAD_W * PAD_SCALE) / 2);
+const padTop = 44;
+outlined.forEach((row, gy) => row.forEach((c, gx) => {
+  if (c === '.') return;
+  const rgb = hex(PAD_COLORS[c]);
+  for (let y = 0; y < PAD_SCALE; y++) {
+    for (let x = 0; x < PAD_SCALE; x++) put(padLeft + gx * PAD_SCALE + x, padTop + gy * PAD_SCALE + y, rgb);
+  }
+}));
 
 // Each pet cropped to its own pixels and scaled with hard edges.
 GROUP.forEach(({ species, color, scale, centerX, baseline, mirror }) => {
