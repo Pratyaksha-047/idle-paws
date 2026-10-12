@@ -76,7 +76,7 @@ mark([[16, 3], [15, 5], [17, 5], [16, 6]], 'p');
 mark([[16, 3]], 'a');
 mark([[9, 5], [12, 5]], 's');
 mark([[2, 9], [3, 10], [4, 10], [16, 10], [17, 10], [19, 9]], 's');
-const PAD_COLORS = { o: '#13323a', b: '#3e8e9a', s: '#2c6b75', l: '#fff6e6', p: '#f3a3ae', a: '#ffd36b' };
+const PAD_COLORS = { o: '#2a2a2e', b: '#8e8f96', s: '#6c6d74', l: '#fff6e6', p: '#f3a3ae', a: '#ffd36b' };
 const PAD_SCALE = 10;
 const padLeft = Math.round(SIZE / 2 - (PAD_W * PAD_SCALE) / 2);
 const padTop = 44;
