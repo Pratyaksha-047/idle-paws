@@ -1,3 +1,4 @@
+import { pauseOnBlur } from '../pause.js';
 import { newGame, step, tickMs, turn } from './engine.js';
 
 const STORAGE_KEY = 'claude-pets:snake';
@@ -136,9 +137,7 @@ window.addEventListener('pointerup', (event) => {
   start();
 });
 
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) pause();
-});
+pauseOnBlur(pause);
 $('start').addEventListener('click', start);
 $('new').addEventListener('click', () => {
   reset();

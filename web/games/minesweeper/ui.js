@@ -1,3 +1,4 @@
+import { pauseOnBlur } from '../pause.js';
 import { chord, createBoard, minesLeft, reveal, toggleFlag } from './engine.js';
 
 const STORAGE_KEY = 'claude-pets:minesweeper';
@@ -28,8 +29,9 @@ const stopTimer = () => {
   timer = null;
 };
 
+// Continues from `elapsed`, so it also resumes after a pause.
 const startTimer = () => {
-  startedAt = Date.now();
+  startedAt = Date.now() - elapsed * 1000;
   timer = setInterval(() => {
     elapsed = Math.floor((Date.now() - startedAt) / 1000);
     $('time').textContent = elapsed;
@@ -85,8 +87,22 @@ const act = (i, flag) => {
   render();
 };
 
+// Only a game in progress (timer running) can pause.
+const pause = () => {
+  if (!timer) return;
+  stopTimer();
+  $('paused').classList.remove('hidden');
+};
+
+const resume = () => {
+  if ($('paused').classList.contains('hidden')) return;
+  $('paused').classList.add('hidden');
+  startTimer();
+};
+
 const newGame = () => {
   stopTimer();
+  $('paused').classList.add('hidden');
   elapsed = 0;
   $('time').textContent = '0';
   board = createBoard($('level').value);
@@ -130,8 +146,14 @@ $('flag-mode').addEventListener('click', () => {
   flagMode = !flagMode;
   render();
 });
+$('resume').addEventListener('click', resume);
+pauseOnBlur(pause);
 document.addEventListener('keydown', (event) => {
   if (event.metaKey || event.ctrlKey || event.altKey || event.target.tagName === 'SELECT') return;
+  if (!$('paused').classList.contains('hidden')) {
+    resume();
+    return;
+  }
   if (event.key.toLowerCase() === 'n') newGame();
   if (event.key.toLowerCase() === 'f') {
     flagMode = !flagMode;

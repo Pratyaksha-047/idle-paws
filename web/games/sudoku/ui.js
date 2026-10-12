@@ -1,3 +1,4 @@
+import { pauseOnBlur } from '../pause.js';
 import { CELLS, PEERS, conflicts, generate, isSolved } from './engine.js';
 
 const STORAGE_KEY = 'claude-pets:sudoku';
@@ -20,6 +21,7 @@ const fresh = (difficulty) => {
 let state = load() || fresh('easy');
 let selected = state.grid.findIndex((v) => v === 0);
 let startedAt = Date.now() - state.elapsed * 1000;
+let paused = false;
 
 const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 
@@ -95,8 +97,19 @@ const moveSelection = (dr, dc) => {
   select(row * 9 + col);
 };
 
+const setPaused = (on) => {
+  paused = on && !state.solved;
+  $('paused').classList.toggle('hidden', !paused);
+  if (!paused) gridEl.focus();
+};
+
 document.addEventListener('keydown', (event) => {
   if (event.metaKey || event.ctrlKey || event.altKey || event.target.tagName === 'SELECT') return;
+  if (paused) {
+    event.preventDefault();
+    setPaused(false);
+    return;
+  }
   const arrows = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
   if (arrows[event.key]) {
     event.preventDefault();
@@ -111,7 +124,7 @@ document.addEventListener('keydown', (event) => {
 });
 
 setInterval(() => {
-  if (state.solved || document.hidden) {
+  if (state.solved || paused || document.hidden) {
     startedAt = Date.now() - state.elapsed * 1000;
     return;
   }
@@ -120,6 +133,8 @@ setInterval(() => {
   save();
 }, 1000);
 
+$('resume').addEventListener('click', () => setPaused(false));
+pauseOnBlur(() => setPaused(true));
 $('new').addEventListener('click', newGame);
 $('again').addEventListener('click', newGame);
 $('difficulty').addEventListener('change', newGame);

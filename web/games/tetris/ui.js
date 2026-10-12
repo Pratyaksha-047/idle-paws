@@ -1,3 +1,4 @@
+import { pauseOnBlur } from '../pause.js';
 import {
   COLS, ROWS, SHAPES, cellsOf, dropMs, ghostY, hardDrop, move, newGame, next, rotate, softDrop, tick,
 } from './engine.js';
@@ -170,9 +171,7 @@ document.addEventListener('keydown', (event) => {
 document.querySelectorAll('.controls button').forEach((button) => {
   button.addEventListener('click', () => perform(button.dataset.act));
 });
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) pause();
-});
+pauseOnBlur(pause);
 $('start').addEventListener('click', start);
 $('new').addEventListener('click', restart);
 window.addEventListener('resize', resize);
