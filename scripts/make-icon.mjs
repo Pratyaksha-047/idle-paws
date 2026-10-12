@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Renders icon.png (512x512) from the pet sprites: dog, duck and cat on grass under a pixel
-// sunset, with a "pause" sun (paw + pause = Pawse), on a rounded tile.
+// Renders icon.png (512x512) from the pet sprites: dog, duck and cat on a banded pixel
+// sunset gradient, on a rounded tile.
 //   node scripts/make-icon.mjs
 import fs from 'node:fs';
 import path from 'node:path';
@@ -12,9 +12,9 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SIZE = 512;
 // Back row first so the front pet draws over it. centerX/baseline in icon pixels.
 const GROUP = [
-  { species: 'dog', color: 'golden', scale: 10, centerX: 112, baseline: 440, mirror: false },
-  { species: 'duck', color: 'white', scale: 10, centerX: 418, baseline: 440, mirror: true },
-  { species: 'cat', color: 'orange', scale: 12, centerX: 246, baseline: 480, mirror: false },
+  { species: 'dog', color: 'golden', scale: 10, centerX: 112, baseline: 372, mirror: false },
+  { species: 'duck', color: 'white', scale: 10, centerX: 418, baseline: 372, mirror: true },
+  { species: 'cat', color: 'orange', scale: 12, centerX: 246, baseline: 412, mirror: false },
 ];
 
 // sprites.js only touches `document` when rendering to canvas; the grids are pure.
@@ -44,43 +44,12 @@ const block = (gx, gy, rgb, w = 1, h = 1) => {
   }
 };
 
-// Sunset sky in hard bands, grass from row 25 down.
+// Sunset gradient in hard pixel bands, top to bottom.
 const SKY = ['#2d2350', '#3b2a5a', '#53306a', '#6e3a72', '#8c4570', '#ab5468', '#c4635f', '#d97757', '#e8925f', '#f2b06e'];
-const GRASS_ROW = 25;
-for (let gy = 0; gy < GRASS_ROW; gy++) {
-  const band = SKY[Math.min(SKY.length - 1, Math.floor((gy / GRASS_ROW) * SKY.length))];
-  block(0, gy, hex(band), SIZE / PX);
+const ROWS = SIZE / PX;
+for (let gy = 0; gy < ROWS; gy++) {
+  block(0, gy, hex(SKY[Math.floor((gy / ROWS) * SKY.length)]), ROWS);
 }
-const grass = hex('#5f9e4f');
-const grassDark = hex('#477d3b');
-const grassLight = hex('#7fbf62');
-block(0, GRASS_ROW, grass, SIZE / PX, SIZE / PX - GRASS_ROW);
-block(0, GRASS_ROW, grassLight, SIZE / PX);
-[[2, 27], [7, 29], [12, 30], [20, 28], [27, 30], [29, 27], [16, 31], [4, 31]].forEach(([gx, gy]) => block(gx, gy, grassDark));
-[[1, 24], [9, 24], [23, 24], [30, 24]].forEach(([gx, gy]) => block(gx, gy, grassLight));
-
-// Sparkles and a cloud.
-const star = hex('#fff1c9');
-[[3, 3], [9, 6], [27, 9], [5, 11], [14, 2]].forEach(([gx, gy]) => block(gx, gy, star));
-[[2, 3], [4, 3], [3, 2], [3, 4]].forEach(([gx, gy]) => block(gx, gy, hex('#c9b8e8')));
-const cloud = hex('#f6d7c3');
-block(4, 15, cloud, 6, 1);
-block(5, 14, cloud, 3, 1);
-block(3, 16, cloud, 8, 1);
-
-// Pause sun, upper right: a pixel disc with two dark bars cut in.
-const sun = hex('#ffd36b');
-const sunEdge = hex('#ffe9a8');
-const SUN = { cx: 23.5, cy: 7.5, r: 5.2 };
-for (let gy = 0; gy < GRASS_ROW; gy++) {
-  for (let gx = 0; gx < SIZE / PX; gx++) {
-    const d = Math.hypot(gx + 0.5 - SUN.cx - 0.5, gy + 0.5 - SUN.cy - 0.5);
-    if (d <= SUN.r) block(gx, gy, d > SUN.r - 1 ? sunEdge : sun);
-  }
-}
-const bar = hex('#8a3f22');
-block(22, 5, bar, 1, 6);
-block(25, 5, bar, 1, 6);
 
 // Rounded-tile mask: clear pixels outside the rounded corners (with a 1px soft edge).
 const RADIUS = 112;
