@@ -5,6 +5,7 @@
   "version": "0.1.0",
   "description": "A pixel pet (cat, dog or duck) that hangs out on your Claude window, plus mini games (2048, Sudoku, Minesweeper, Snake, Tetris) to play while Claude works.",
   "long_description": "Pawse adds a pixel pet that walks, sleeps and plays fetch on top of Claude's input bar, and hops when a Claude Code session finishes. Double-click the pet for the console: pet controls and games. Click Play or ask Claude to \"open game\" to pick a game in the side browser pane. macOS only.",
+  "icon": "icon.png",
   "author": {
     "name": "Pratyaksha Gupta"
   },
