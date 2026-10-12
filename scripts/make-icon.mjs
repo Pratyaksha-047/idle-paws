@@ -50,17 +50,32 @@ for (let y = 0; y < SIZE; y++) {
   }
 }
 
-// Pause bars, top centre.
-const accent = hex('#d97757');
-for (const bx of [218, 268]) {
-  for (let y = 56; y < 132; y++) {
-    for (let x = bx; x < bx + 26; x++) {
-      const cx = Math.min(Math.max(x, bx + 8), bx + 17);
-      const cy = Math.min(Math.max(y, 64), 123);
-      if (Math.hypot(x - cx, y - cy) <= 8) put(x, y, accent);
+// Pause button, top centre: orange disc on a darker rim (3D press), two cream bars inside.
+const BUTTON = { cx: 256, cy: 112, r: 76, depth: 8 };
+const disc = (cx, cy, r, rgb) => {
+  for (let y = Math.floor(cy - r - 1); y <= cy + r + 1; y++) {
+    for (let x = Math.floor(cx - r - 1); x <= cx + r + 1; x++) {
+      const coverage = Math.min(1, Math.max(0, r - Math.hypot(x + 0.5 - cx, y + 0.5 - cy) + 0.5));
+      if (coverage > 0) put(x, y, rgb, Math.round(255 * coverage));
     }
   }
-}
+};
+const roundedBar = (x0, y0, w, h, rgb) => {
+  const r = w / 2;
+  for (let y = y0; y < y0 + h; y++) {
+    for (let x = x0; x < x0 + w; x++) {
+      const cy = Math.min(Math.max(y + 0.5, y0 + r), y0 + h - r);
+      const coverage = Math.min(1, Math.max(0, r - Math.hypot(x + 0.5 - (x0 + r), y + 0.5 - cy) + 0.5));
+      if (coverage > 0) put(x, y, rgb, Math.round(255 * coverage));
+    }
+  }
+};
+disc(BUTTON.cx, BUTTON.cy + BUTTON.depth, BUTTON.r, hex('#a9533a'));
+disc(BUTTON.cx, BUTTON.cy, BUTTON.r, hex('#d97757'));
+const BAR = { w: 24, h: 70, gap: 22 };
+const barTop = BUTTON.cy - BAR.h / 2;
+roundedBar(BUTTON.cx - BAR.gap / 2 - BAR.w, barTop, BAR.w, BAR.h, hex('#fff6e6'));
+roundedBar(BUTTON.cx + BAR.gap / 2, barTop, BAR.w, BAR.h, hex('#fff6e6'));
 
 // Each pet cropped to its own pixels and scaled with hard edges.
 GROUP.forEach(({ species, color, scale, centerX, baseline, mirror }) => {
