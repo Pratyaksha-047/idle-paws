@@ -7,7 +7,7 @@ const net = require('net');
 const os = require('os');
 const path = require('path');
 
-const SOCKET_PATH = path.join(os.homedir(), 'Library', 'Application Support', 'claude-pets', 'pets.sock');
+const SOCKET_PATH = path.join(os.homedir(), 'Library', 'Application Support', 'pawse', 'pets.sock');
 const KINDS = { Stop: 'done', Notification: 'attention' };
 
 const finish = () => process.exit(0);

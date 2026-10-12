@@ -10,9 +10,10 @@ import path from 'node:path';
 const SETTINGS = path.join(os.homedir(), '.claude', 'settings.json');
 const DEFAULT_HOOK = path.join(
   os.homedir(), 'Library', 'Application Support', 'Claude', 'Claude Extensions',
-  'local.mcpb.pratyaksha-gupta.claude-pets', 'server', 'hook.js',
+  'local.mcpb.pratyaksha-gupta.pawse', 'server', 'hook.js',
 );
-const MARKER = 'claude-pets';
+// Also matches hooks installed under the project's old name.
+const MARKERS = ['pawse', 'claude-pets'];
 const EVENTS = ['Stop', 'Notification'];
 
 const remove = process.argv.includes('--remove');
@@ -23,9 +24,9 @@ if (!remove && !fs.existsSync(hookPath)) {
 }
 
 const settings = fs.existsSync(SETTINGS) ? JSON.parse(fs.readFileSync(SETTINGS, 'utf8')) : {};
-fs.copyFileSync(SETTINGS, `${SETTINGS}.bak-claude-pets`);
+fs.copyFileSync(SETTINGS, `${SETTINGS}.bak-pawse`);
 
-const isOurs = (group) => (group.hooks || []).some((hook) => String(hook.command || '').includes(MARKER));
+const isOurs = (group) => (group.hooks || []).some((hook) => MARKERS.some((marker) => String(hook.command || '').includes(marker)));
 settings.hooks = settings.hooks || {};
 for (const event of EVENTS) {
   const groups = (settings.hooks[event] || []).filter((group) => !isOurs(group));
@@ -37,4 +38,4 @@ for (const event of EVENTS) {
 }
 
 fs.writeFileSync(SETTINGS, `${JSON.stringify(settings, null, 2)}\n`);
-console.log(`${remove ? 'removed' : 'installed'} claude-pets hooks (${EVENTS.join(', ')}) in ${SETTINGS}`);
+console.log(`${remove ? 'removed' : 'installed'} pawse hooks (${EVENTS.join(', ')}) in ${SETTINGS}`);

@@ -1,26 +1,26 @@
 #!/usr/bin/env bash
-# Builds ClaudePets.app and packs dist/claude-pets.mcpb.
+# Builds Pawse.app and packs dist/pawse.mcpb.
 #   scripts/build.sh          -> app + mcpb
-#   scripts/build.sh --app    -> app only (dist/ClaudePets.app)
+#   scripts/build.sh --app    -> app only (dist/Pawse.app)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DIST="$ROOT/dist"
-APP="$DIST/ClaudePets.app"
-BIN="$ROOT/.build/ClaudePets"
+APP="$DIST/Pawse.app"
+BIN="$ROOT/.build/Pawse"
 SDK_DIR="/Library/Developer/CommandLineTools/SDKs"
 
 compile() {
   local sdk="$1"
   swiftc -O -swift-version 5 -sdk "$sdk" -target arm64-apple-macos13.0 \
-    -o "$BIN" "$ROOT"/native/Sources/ClaudePets/*.swift
+    -o "$BIN" "$ROOT"/native/Sources/Pawse/*.swift
 }
 
 mkdir -p "$ROOT/.build" "$DIST"
 
 # The newest SDK can be ahead of the installed compiler; use the newest one that compiles.
-if [[ -n "${CLAUDE_PETS_SDK:-}" ]]; then
-  compile "$CLAUDE_PETS_SDK"
+if [[ -n "${PAWSE_SDK:-}" ]]; then
+  compile "$PAWSE_SDK"
 else
   built=0
   for sdk in $(ls -d "$SDK_DIR"/MacOSX[0-9]*.sdk | sort -V -r); do
@@ -30,22 +30,22 @@ else
       break
     fi
   done
-  [[ $built == 1 ]] || { echo "no SDK compiled; set CLAUDE_PETS_SDK" >&2; exit 1; }
+  [[ $built == 1 ]] || { echo "no SDK compiled; set PAWSE_SDK" >&2; exit 1; }
 fi
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp "$BIN" "$APP/Contents/MacOS/ClaudePets"
+cp "$BIN" "$APP/Contents/MacOS/Pawse"
 cp -R "$ROOT/web" "$APP/Contents/Resources/web"
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleIdentifier</key><string>dev.claudepets.overlay</string>
-  <key>CFBundleName</key><string>Claude Pets</string>
-  <key>CFBundleDisplayName</key><string>Claude Pets</string>
-  <key>CFBundleExecutable</key><string>ClaudePets</string>
+  <key>CFBundleIdentifier</key><string>dev.pawse.overlay</string>
+  <key>CFBundleName</key><string>Pawse</string>
+  <key>CFBundleDisplayName</key><string>Pawse</string>
+  <key>CFBundleExecutable</key><string>Pawse</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>0.1.0</string>
   <key>CFBundleVersion</key><string>1</string>
@@ -56,7 +56,7 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 </plist>
 PLIST
 # A stable identity keeps the Accessibility grant valid across rebuilds; ad-hoc changes every build.
-SIGN_ID="${CLAUDE_PETS_SIGN_ID:-Claude Pets Dev}"
+SIGN_ID="${PAWSE_SIGN_ID:-Claude Pets Dev}"
 if security find-identity -p codesigning | grep -q "\"$SIGN_ID\""; then
   codesign --force --sign "$SIGN_ID" --timestamp=none "$APP"
 else
@@ -72,8 +72,8 @@ rm -rf "$STAGE"
 mkdir -p "$STAGE"
 cp "$ROOT/manifest.json" "$STAGE/"
 cp -R "$ROOT/server" "$STAGE/server"
-cp -R "$APP" "$STAGE/ClaudePets.app"
+cp -R "$APP" "$STAGE/Pawse.app"
 [[ -f "$ROOT/icon.png" ]] && cp "$ROOT/icon.png" "$STAGE/"
 npx -y @anthropic-ai/mcpb validate "$STAGE/manifest.json"
-npx -y @anthropic-ai/mcpb pack "$STAGE" "$DIST/claude-pets.mcpb"
-echo "packed $DIST/claude-pets.mcpb"
+npx -y @anthropic-ai/mcpb pack "$STAGE" "$DIST/pawse.mcpb"
+echo "packed $DIST/pawse.mcpb"
