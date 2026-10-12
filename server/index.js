@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Pawse MCP server (stdio). Launches Pawse.app and forwards tool calls to it
+// Idle Paws MCP server (stdio). Launches IdlePaws.app and forwards tool calls to it
 // over a unix socket. Holding the socket open keeps the overlay alive.
 'use strict';
 
@@ -12,14 +12,14 @@ const readline = require('readline');
 
 const VERSION = '0.1.0';
 const ROOT = path.resolve(__dirname, '..');
-const APP_PATH = process.env.PAWSE_APP || path.join(ROOT, 'Pawse.app');
-const APP_EXE = path.join(APP_PATH, 'Contents', 'MacOS', 'Pawse');
-const SOCKET_PATH = path.join(os.homedir(), 'Library', 'Application Support', 'pawse', 'pets.sock');
-const CLIENT = process.env.PAWSE_CLIENT || 'unknown';
+const APP_PATH = process.env.IDLE_PAWS_APP || path.join(ROOT, 'IdlePaws.app');
+const APP_EXE = path.join(APP_PATH, 'Contents', 'MacOS', 'IdlePaws');
+const SOCKET_PATH = path.join(os.homedir(), 'Library', 'Application Support', 'idle-paws', 'pets.sock');
+const CLIENT = process.env.IDLE_PAWS_CLIENT || 'unknown';
 const REQUEST_TIMEOUT_MS = 4000;
 const GAMES = ['2048', 'sudoku', 'minesweeper', 'snake', 'tetris'];
 
-const log = (...parts) => process.stderr.write(`[pawse:${CLIENT}] ${parts.join(' ')}\n`);
+const log = (...parts) => process.stderr.write(`[idle-paws:${CLIENT}] ${parts.join(' ')}\n`);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // ---------------------------------------------------------------- overlay app link
@@ -119,7 +119,7 @@ const connect = async ({ launch }) => {
 const request = async (cmd, args = {}) => {
   if (!claudeDesktopRunning()) throw new Error('Claude Desktop is not running; the pet lives on its window.');
   const s = await connect({ launch: true });
-  if (!s) throw new Error('could not start the Pawse overlay (see ~/Library/Logs/pawse.log)');
+  if (!s) throw new Error('could not start the Idle Paws overlay (see ~/Library/Logs/idle-paws.log)');
   const id = nextId++;
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
@@ -144,7 +144,7 @@ const TOOLS = [
   {
     name: 'open_game',
     description:
-      'Open Pawse mini games for the user to play while Claude works. Returns a localhost URL; ' +
+      'Open Idle Paws mini games for the user to play while Claude works. Returns a localhost URL; ' +
       'open it in the built-in browser pane (side panel). Without `game` it opens the games menu.',
     inputSchema: {
       type: 'object',
@@ -154,10 +154,10 @@ const TOOLS = [
       additionalProperties: false,
     },
   },
-  { name: 'open_console', description: 'Open the Pawse console (pet controls and games) next to the pet.', inputSchema: emptySchema },
-  { name: 'pet_show', description: 'Show the Pawse pet on the Claude window.', inputSchema: emptySchema },
-  { name: 'pet_hide', description: 'Hide the Pawse pet (a paw print stays; double-click it to bring the pet back).', inputSchema: emptySchema },
-  { name: 'pet_status', description: 'Report Pawse overlay status (pet visibility, floor detection, games URL).', inputSchema: emptySchema },
+  { name: 'open_console', description: 'Open the Idle Paws console (pet controls and games) next to the pet.', inputSchema: emptySchema },
+  { name: 'pet_show', description: 'Show the Idle Paws pet on the Claude window.', inputSchema: emptySchema },
+  { name: 'pet_hide', description: 'Hide the Idle Paws pet (a paw print stays; double-click it to bring the pet back).', inputSchema: emptySchema },
+  { name: 'pet_status', description: 'Report Idle Paws overlay status (pet visibility, floor detection, games URL).', inputSchema: emptySchema },
 ];
 
 const text = (value, isError = false) => ({ content: [{ type: 'text', text: value }], ...(isError ? { isError: true } : {}) });
@@ -204,7 +204,7 @@ const handle = async (message) => {
       return reply({
         protocolVersion: params.protocolVersion || '2025-06-18',
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: 'pawse', version: VERSION },
+        serverInfo: { name: 'idle-paws', version: VERSION },
       });
     case 'ping':
       return reply({});
@@ -214,7 +214,7 @@ const handle = async (message) => {
       try {
         return reply(await callTool(params.name, params.arguments));
       } catch (err) {
-        return reply(text(`Pawse: ${err.message}`, true));
+        return reply(text(`Idle Paws: ${err.message}`, true));
       }
     default:
       if (method && method.startsWith('notifications/')) return undefined;

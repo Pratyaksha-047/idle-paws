@@ -2,9 +2,9 @@
 import PackageDescription
 
 let package = Package(
-    name: "Pawse",
+    name: "IdlePaws",
     platforms: [.macOS(.v13)],
     targets: [
-        .executableTarget(name: "Pawse", path: "Sources/Pawse"),
+        .executableTarget(name: "IdlePaws", path: "Sources/IdlePaws"),
     ]
 )

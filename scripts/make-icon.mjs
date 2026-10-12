@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Renders icon.png (512x512) from the pet sprites: dog, duck and cat sitting together with
-// pause bars above (paw + pause = Pawse) on a solid rounded tile.
+// Renders icon.png (512x512) from the pet sprites: dog, duck and cat sitting together under
+// a round paw-print button (Idle Paws) on a solid rounded tile.
 //   node scripts/make-icon.mjs [#background] [output.png]
 import fs from 'node:fs';
 import path from 'node:path';
@@ -50,7 +50,7 @@ for (let y = 0; y < SIZE; y++) {
   }
 }
 
-// Pause button, top centre: orange disc on a darker rim (3D press), two cream bars inside.
+// Paw button, top centre: orange disc on a darker rim (3D press) with a cream paw print.
 const BUTTON = { cx: 256, cy: 112, r: 76, depth: 8 };
 const disc = (cx, cy, r, rgb) => {
   for (let y = Math.floor(cy - r - 1); y <= cy + r + 1; y++) {
@@ -60,22 +60,13 @@ const disc = (cx, cy, r, rgb) => {
     }
   }
 };
-const roundedBar = (x0, y0, w, h, rgb) => {
-  const r = w / 2;
-  for (let y = y0; y < y0 + h; y++) {
-    for (let x = x0; x < x0 + w; x++) {
-      const cy = Math.min(Math.max(y + 0.5, y0 + r), y0 + h - r);
-      const coverage = Math.min(1, Math.max(0, r - Math.hypot(x + 0.5 - (x0 + r), y + 0.5 - cy) + 0.5));
-      if (coverage > 0) put(x, y, rgb, Math.round(255 * coverage));
-    }
-  }
-};
 disc(BUTTON.cx, BUTTON.cy + BUTTON.depth, BUTTON.r, hex('#a9533a'));
 disc(BUTTON.cx, BUTTON.cy, BUTTON.r, hex('#d97757'));
-const BAR = { w: 24, h: 70, gap: 22 };
-const barTop = BUTTON.cy - BAR.h / 2;
-roundedBar(BUTTON.cx - BAR.gap / 2 - BAR.w, barTop, BAR.w, BAR.h, hex('#fff6e6'));
-roundedBar(BUTTON.cx + BAR.gap / 2, barTop, BAR.w, BAR.h, hex('#fff6e6'));
+const cream = hex('#fff6e6');
+disc(BUTTON.cx, BUTTON.cy + 20, 27, cream);
+disc(BUTTON.cx - 14, BUTTON.cy + 28, 22, cream);
+disc(BUTTON.cx + 14, BUTTON.cy + 28, 22, cream);
+[[-37, -10], [-14, -32], [14, -32], [37, -10]].forEach(([dx, dy]) => disc(BUTTON.cx + dx, BUTTON.cy + dy, 13, cream));
 
 // Each pet cropped to its own pixels and scaled with hard edges.
 GROUP.forEach(({ species, color, scale, centerX, baseline, mirror }) => {

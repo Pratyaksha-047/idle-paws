@@ -10,10 +10,10 @@ private struct Floor: Equatable {
 final class AppController: NSObject, NSApplicationDelegate {
     private let tracker = WindowTracker()
     private let locator = InputBarLocator()
-    private let axQueue = DispatchQueue(label: "pawse.ax")
+    private let axQueue = DispatchQueue(label: "idle-paws.ax")
     private let control = ControlServer()
     private let http = HTTPServer(root: Paths.web.appendingPathComponent("games", isDirectory: true))
-    private let devMode = ProcessInfo.processInfo.environment["PAWSE_DEV"] == "1"
+    private let devMode = ProcessInfo.processInfo.environment["IDLE_PAWS_DEV"] == "1"
 
     private var overlay: Overlay!
     private var prefs = Prefs.load()
@@ -196,7 +196,7 @@ final class AppController: NSObject, NSApplicationDelegate {
         guard let pid = tracker.pid else { return }
         let url = gameURL(game)
         axQueue.async { [weak self] in
-            let result = BrowserPaneOpener.open(url: url, tabTitleHint: "Pawse", pid: pid)
+            let result = BrowserPaneOpener.open(url: url, tabTitleHint: "Idle Paws", pid: pid)
             DispatchQueue.main.async {
                 guard case .failure(let failure) = result else { return }
                 Log.info("browser pane: \(failure)")

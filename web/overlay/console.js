@@ -10,7 +10,7 @@
       this.el.className = 'console hidden';
       this.el.innerHTML = `
         <div class="console-head">
-          <span class="title"><span class="pad">🎮</span> Pawse</span>
+          <span class="title"><span class="pad">🎮</span> Idle Paws</span>
           <button class="icon" data-act="close" title="Close">✕</button>
         </div>
         <section>

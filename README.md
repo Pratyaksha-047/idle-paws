@@ -1,4 +1,4 @@
-# Pawse
+# Idle Paws
 
 A pixel pet (cat, dog or duck) that lives on your Claude Desktop window, plus mini games (2048, Sudoku, Minesweeper, Snake, Tetris) for while Claude works. macOS only.
 
@@ -9,16 +9,16 @@ Claude Desktop ──(extension, stdio)──▶ server/index.js  (MCP server, n
 Claude Code    ──(user MCP, stdio)───▶ server/index.js
                                           │ launches via LaunchServices, unix socket
                                           ▼
-                                   Pawse.app  (Swift overlay)
+                                   IdlePaws.app  (Swift overlay)
                                    ├─ transparent panel over Claude's window (click-through except pet/console)
                                    ├─ Accessibility: finds the "Prompt" composer → pet's floor
                                    ├─ WKWebView: pet + console (web/overlay)
                                    └─ http://localhost:4747 → games (web/games)
 ```
 
-- One overlay instance; every MCP server holds a lease on `~/Library/Application Support/pawse/pets.sock`.
+- One overlay instance; every MCP server holds a lease on `~/Library/Application Support/idle-paws/pets.sock`.
 - The app quits when Claude Desktop quits or no MCP server is attached for 20s.
-- The overlay is its own app so the Accessibility grant covers only Pawse.
+- The overlay is its own app so the Accessibility grant covers only Idle Paws.
 
 ## Use
 
@@ -34,18 +34,18 @@ Claude Code    ──(user MCP, stdio)───▶ server/index.js
 
 ```bash
 npm test                 # game engine tests
-scripts/build.sh         # dist/Pawse.app + dist/pawse.mcpb
-open dist/pawse.mcpb
+scripts/build.sh         # dist/IdlePaws.app + dist/idle-paws.mcpb
+open dist/idle-paws.mcpb
 ```
 
 - Builds with `swiftc` directly (SwiftPM in Command Line Tools is broken here); picks the newest SDK the compiler accepts.
 - Signs with the `Claude Pets Dev` keychain identity so the Accessibility grant survives rebuilds (falls back to ad-hoc).
-- Grant System Settings → Privacy & Security → Accessibility → Pawse. Without it the floor falls back to a fixed offset.
-- Claude Code: `claude mcp add pawse -s user -e PAWSE_CLIENT=code -- node "<extension dir>/server/index.js"`.
+- Grant System Settings → Privacy & Security → Accessibility → Idle Paws. Without it the floor falls back to a fixed offset.
+- Claude Code: `claude mcp add idle-paws -s user -e IDLE_PAWS_CLIENT=code -- node "<extension dir>/server/index.js"`.
 
 ## Diagnostics
 
-- Log: `~/Library/Logs/pawse.log`
-- Probe Claude's inputs: `open -n -W dist/Pawse.app --args --probe-ax`; buttons/fields: `--probe-buttons`
+- Log: `~/Library/Logs/idle-paws.log`
+- Probe Claude's inputs: `open -n -W dist/IdlePaws.app --args --probe-ax`; buttons/fields: `--probe-buttons`
 - A1 CPU benchmark (AX on vs off): `scripts/cpu-bench.py --rounds 2 --seconds 60` (last result: `bench/a1-idle.txt`)
-- Web inspector: Safari → Develop → Pawse.
+- Web inspector: Safari → Develop → Idle Paws.

@@ -1,7 +1,7 @@
 import AppKit
 import ApplicationServices
 
-/// One-shot diagnostics used during the M0 spike. Output goes to ~/Library/Logs/pawse.log.
+/// One-shot diagnostics used during the M0 spike. Output goes to ~/Library/Logs/idle-paws.log.
 enum Probe {
     static func claudeApp() -> AXUIElement? {
         guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: WindowTracker.bundleID).first else {

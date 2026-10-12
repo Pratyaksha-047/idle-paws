@@ -1,10 +1,10 @@
 import Foundation
 
 enum Log {
-    private static let queue = DispatchQueue(label: "pawse.log")
+    private static let queue = DispatchQueue(label: "idle-paws.log")
     private static let formatter = ISO8601DateFormatter()
     private static let handle: FileHandle? = {
-        let url = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/pawse.log")
+        let url = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/idle-paws.log")
         if !FileManager.default.fileExists(atPath: url.path) {
             FileManager.default.createFile(atPath: url.path, contents: nil)
         }
