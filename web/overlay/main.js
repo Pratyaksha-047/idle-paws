@@ -8,6 +8,7 @@
     onPrefs: (prefs) => window.PetBus.post('prefs', { prefs }),
     onMouseMode: (on) => window.PetBus.post('mouseMode', { on }),
     onToggleConsole: () => petConsole.toggle(),
+    closeConsole: () => petConsole.close(),
     extraHotRects: () => {
       const rect = petConsole && petConsole.rect();
       return rect ? [rect] : [];

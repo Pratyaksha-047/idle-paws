@@ -22,7 +22,7 @@ Claude Code    ──(user MCP, stdio)───▶ server/index.js
 
 ## Use
 
-- **Click** the pet: hearts. **Double-click**: console. **Drag**: move it.
+- **Click** the pet: hearts. **Double-click**: throw the ball. **Right-click**: console. **Drag**: move it.
 - **Reacts to Claude Code:** when a session finishes (`Stop` hook) the pet hops and says *Done! · project*; when Claude needs you (`Notification` hook) it shows *!* and *Claude needs you*. Install/remove the hooks with `node scripts/install-hooks.mjs [--remove]` (idempotent, backs up `~/.claude/settings.json`). Chat-tab conversations have no hooks, so they don't trigger reactions.
 - Console: throw ball, hide (a paw print stays; double-click it), pet (cat / dog / duck), mode (Auto / Follow me), colour, size, speed, **Play games**.
 - Pets are built from shape primitives in `web/overlay/sprites.js` (`SPECIES`: poses `stand`/`sit`/`sleep` + palettes).

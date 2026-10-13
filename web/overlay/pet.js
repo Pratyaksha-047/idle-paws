@@ -44,6 +44,11 @@
       this.pawCanvas = this.makeCanvas('paw');
       this.petCanvas.addEventListener('mousedown', (e) => this.onPress(e, 'pet'));
       this.pawCanvas.addEventListener('mousedown', (e) => this.onPress(e, 'paw'));
+      // Right-click (pet or paw print) opens the console instead of the system menu.
+      [this.petCanvas, this.pawCanvas].forEach((canvas) => canvas.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        this.hooks.onToggleConsole();
+      }));
       window.addEventListener('mousemove', (e) => this.onMove(e));
       window.addEventListener('mouseup', (e) => this.onRelease(e));
     }
@@ -413,7 +418,8 @@
         this.show();
         return;
       }
-      this.hooks.onToggleConsole();
+      this.hooks.closeConsole();
+      this.throwBall();
     }
 
     // ---- rendering
