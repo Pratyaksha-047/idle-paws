@@ -27,8 +27,9 @@ final class InputBarLocator {
         if pid != self.pid || app == nil { attach(pid) }
         guard let app else { return nil }
 
-        if let focused = AX.element(app, kAXFocusedUIElementAttribute), Self.isPrompt(focused, window: window),
-           input.map({ !CFEqual($0, focused) }) ?? true {
+        if let focused = AX.element(app, kAXFocusedUIElementAttribute),
+           input.map({ !CFEqual($0, focused) }) ?? true,
+           Self.isPrompt(focused, window: window), !Self.isInSideChat(focused) {
             adopt(focused)
         }
         if let result = current(window: window) { return result }
@@ -73,6 +74,18 @@ final class InputBarLocator {
         return AX.string(element, kAXDescriptionAttribute) == "Prompt" || AX.classes(element).contains("ProseMirror")
     }
 
+    /// The btw "Side chat" panel has its own prompt; the pet stays on the session's main one.
+    private static func isInSideChat(_ element: AXUIElement) -> Bool {
+        var current = AX.element(element, kAXParentAttribute)
+        for _ in 0..<14 {
+            guard let node = current else { return false }
+            let label = AX.string(node, kAXDescriptionAttribute) ?? AX.string(node, kAXTitleAttribute) ?? ""
+            if label.hasPrefix("Side chat") { return true }
+            current = AX.element(node, kAXParentAttribute)
+        }
+        return false
+    }
+
     private static func composerCard(of element: AXUIElement) -> AXUIElement? {
         var current = AX.element(element, kAXParentAttribute)
         for _ in 0..<8 {
@@ -100,7 +113,7 @@ final class InputBarLocator {
             let role = AX.role(element)
             if role == kAXStaticTextRole { continue }
             if role == kAXTextAreaRole, Self.isPrompt(element, window: window), let frame = AX.frame(element),
-               frame.minY > (best?.y ?? -.infinity) {
+               frame.minY > (best?.y ?? -.infinity), !Self.isInSideChat(element) {
                 best = (element, frame.minY)
             }
             queue.append(contentsOf: AX.children(element))

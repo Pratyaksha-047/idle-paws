@@ -8,6 +8,11 @@ if arguments.contains("--probe-ax") {
     Log.flush()
     exit(0)
 }
+if arguments.contains("--probe-windows") {
+    Probe.watchWindows()
+    Log.flush()
+    exit(0)
+}
 if arguments.contains("--probe-buttons") {
     Probe.dumpButtons()
     Log.flush()

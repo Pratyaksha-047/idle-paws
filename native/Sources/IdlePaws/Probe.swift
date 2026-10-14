@@ -79,6 +79,55 @@ enum Probe {
         }
     }
 
+    /// `--probe-windows`: for 2 minutes, logs Claude's windows and prompt inputs whenever they change.
+    static func watchWindows() {
+        guard AX.isTrusted(prompt: true), let app = claudeApp(),
+              let pid = NSRunningApplication.runningApplications(withBundleIdentifier: WindowTracker.bundleID).first?.processIdentifier
+        else { return }
+        AXUIElementSetMessagingTimeout(app, 1.0)
+        AX.enableManualAccessibility(app, true)
+        var last = ""
+        let deadline = Date().addingTimeInterval(120)
+        while Date() < deadline {
+            var lines: [String] = []
+            let cgList = (CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]) ?? []
+            for info in cgList where (info[kCGWindowOwnerPID as String] as? Int32) == pid {
+                let bounds = (info[kCGWindowBounds as String] as? NSDictionary).flatMap { CGRect(dictionaryRepresentation: $0) } ?? .zero
+                lines.append("CG #\(info[kCGWindowNumber as String] ?? "?") layer=\(info[kCGWindowLayer as String] ?? "?") bounds=\(bounds)")
+            }
+            let focused = AX.element(app, kAXFocusedWindowAttribute)
+            for window in (AX.attribute(app, kAXWindowsAttribute) as? [AXUIElement]) ?? [] {
+                let isFocused = focused.map { CFEqual($0, window) } ?? false
+                lines.append("AX window title=\(AX.string(window, kAXTitleAttribute) ?? "-") subrole=\(AX.string(window, kAXSubroleAttribute) ?? "-") frame=\(AX.frame(window).map { "\($0)" } ?? "-") focused=\(isFocused)")
+                var queue = [window]
+                var index = 0
+                while index < queue.count && index < 8000 {
+                    let element = queue[index]
+                    index += 1
+                    if AX.role(element) == kAXTextAreaRole, AX.string(element, kAXDescriptionAttribute) == "Prompt" || AX.classes(element).contains("ProseMirror") {
+                        var chain: [String] = []
+                        var parent = AX.element(element, kAXParentAttribute)
+                        for _ in 0..<10 {
+                            guard let node = parent else { break }
+                            let classes = AX.classes(node).prefix(4).joined(separator: ".")
+                            let tag = [AX.string(node, kAXSubroleAttribute), AX.string(node, kAXDescriptionAttribute)].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "/")
+                            if !classes.isEmpty || !tag.isEmpty { chain.append("[\(tag)|\(classes)]") }
+                            parent = AX.element(node, kAXParentAttribute)
+                        }
+                        lines.append("  PROMPT frame=\(AX.frame(element).map { "\($0)" } ?? "-") desc=\(AX.string(element, kAXDescriptionAttribute) ?? "-") ancestors=\(chain.joined(separator: " < "))")
+                    }
+                    if AX.role(element) != kAXStaticTextRole { queue.append(contentsOf: AX.children(element)) }
+                }
+            }
+            let snapshot = lines.joined(separator: "\n")
+            if snapshot != last {
+                Log.info("probe-windows: ---- change\n" + snapshot)
+                last = snapshot
+            }
+            Thread.sleep(forTimeInterval: 2)
+        }
+    }
+
     private static func describe(_ element: AXUIElement, label: String) {
         let fields = [
             "role=\(AX.role(element) ?? "-")",
