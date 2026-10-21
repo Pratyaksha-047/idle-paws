@@ -1,52 +1,107 @@
-# Idle Paws
+<p align="center"><img src="icon.png" width="160" alt="Idle Paws icon"></p>
 
-A pixel pet (cat, dog or duck) that lives on your Claude Desktop window, plus a menu of your own favourite web games for while Claude works. macOS only.
+<h1 align="center">Idle Paws</h1>
 
-## How it works
+<p align="center">A pixel pet that lives on your Claude Desktop window — and a menu of games for while Claude works.</p>
 
-```
-Claude Desktop ──(extension, stdio)──▶ server/index.js  (MCP server, node)
-Claude Code    ──(user MCP, stdio)───▶ server/index.js
-                                          │ launches via LaunchServices, unix socket
-                                          ▼
-                                   IdlePaws.app  (Swift overlay)
-                                   ├─ transparent panel over Claude's window (click-through except pet/console)
-                                   ├─ Accessibility: finds the "Prompt" composer → pet's floor
-                                   ├─ WKWebView: pet + console (web/overlay)
-                                   └─ http://localhost:4747 → games menu (web/games) + /games.json
-```
+<!-- Demo GIF goes here: docs/demo.gif -->
 
-- One overlay instance; every MCP server holds a lease on `~/Library/Application Support/idle-paws/pets.sock`.
-- The app quits when Claude Desktop quits or no MCP server is attached for 20s.
-- The overlay is its own app so the Accessibility grant covers only Idle Paws.
+---
 
-## Use
+Waiting for Claude to finish a long task? **Idle Paws** puts a little pixel cat, dog or duck on top of
+Claude's input bar. It walks, naps, plays fetch, hops when Claude finishes, and opens a menu of web games
+in Claude's side browser pane so you have something to do in the meantime.
 
-- **Click** the pet: hearts. **Double-click**: throw the ball. **Right-click**: console. **Drag**: move it.
-- **Reacts to Claude Code:** when a session finishes (`Stop` hook) the pet hops and says *Done! · project*; when Claude needs you (`Notification` hook) it shows *!* and *Claude needs you*. Install/remove the hooks with `node scripts/install-hooks.mjs [--remove]` (idempotent, backs up `~/.claude/settings.json`). Chat-tab conversations have no hooks, so they don't trigger reactions.
-- Console: throw ball, hide (a paw print stays; double-click it), pet (cat / dog / duck), mode (Auto / Follow me), colour, size, speed, **Play games**.
-- Pets are built from shape primitives in `web/overlay/sprites.js` (`SPECIES`: poses `stand`/`sit`/`sleep` + palettes).
-- **Games are opt-in:** the extension setting **Show games** (on by default) adds a **🎮 Games** button to the pet's menu. Off = no button, no menu, and Claude's game tools say games are off.
-- The games menu starts with four single-player picks (Lichess puzzles, Murdoku, Contexto, Neal.fun), each checked to load in the side pane at ~400px with no login. Add your own with **+ Add game** (link + optional name), remove any with × (click twice), or ask Claude (*add murdoku.com to my games*, *remove chess puzzles*, *list my games*). Removed starters stay removed.
-- One list in prefs (`games`; starters until first changed). Links are normalised (http/https only, bare origins get `/`), duplicates refused, max 60. The menu edits via `POST /games`, which only accepts JSON from the menu's own origin (cross-site pages get 403/415). Cards show the game's preview image (`og:image` / `twitter:image`, looked up once and cached), else just the name; two per row.
-- **Play games** drives Claude's own browser pane through Accessibility (Browser toggle → reuse our tab or New tab → type the URL into Page URL → Return) and opens the games menu. No Claude turn involved; works while Claude is busy.
-- Ask Claude: *open game*, *open console*, *show/hide pet*, *pet status*.
+## Features
 
-## Build & install
+- **A pet on your input bar.** It finds Claude's message box and walks along the top of it, follows it
+  when the box grows, and hides when a dialog covers it.
+- **Three pets, several colours.** Cat, dog or duck; small, medium or large; chill, normal or zoomy.
+- **Play with it.** Click for hearts, double-click to throw a ball (it fetches), drag it around, or switch
+  to *Follow me* mode and it chases your cursor.
+- **Games while you wait.** The pet's menu has a **🎮 Games** button that opens a games menu in Claude's
+  side browser pane. It starts with a few picks; add any site you like or remove the ones you don't.
+- **Ask Claude.** "Open game", "add murdoku.com to my games", "hide the pet", "list my games".
+- **Reacts to Claude Code** *(optional)*: hops and says *Done!* when a session finishes, and shows a **!** when
+  Claude needs your input.
+
+## Requirements
+
+- macOS 13 or later, on an Apple Silicon Mac (M1 or newer)
+- [Claude Desktop](https://claude.ai/download)
+
+## Install
+
+1. Download **`idle-paws.mcpb`** from the [latest release](../../releases/latest).
+2. Double-click it. Claude Desktop opens an install dialog. Click **Install**.
+   - **Show games** is on by default; turn it off if you just want the pet.
+3. macOS asks to let **Idle Paws** use **Accessibility**. Allow it: System Settings → Privacy & Security →
+   Accessibility → Idle Paws.
+   This lets the pet find Claude's input bar and lets **Games** open Claude's browser pane. Without it the
+   pet still works, but sits near the bottom of the window instead.
+
+The pet appears within a few seconds and starts and stops with Claude Desktop.
+
+## Using it
+
+| Do this | To |
+|---|---|
+| **Right-click** the pet | Open its menu: pet, colour, size, speed, mode, throw ball, hide, **🎮 Games** |
+| **Double-click** the pet | Throw the ball |
+| **Click** the pet | Pet it |
+| **Drag** the pet | Move it |
+| Double-click the 🐾 paw print | Bring a hidden pet back |
+
+**Games:** click **🎮 Games** in the menu. Click a card to play, **+ Add game** to add any site (sites that
+work on a phone fit the side pane best), or **×** on a card to remove it.
+
+**Ask Claude:** in a Claude chat, try *"open game"*, *"add lichess.org/training to my games"*,
+*"remove contexto"*, *"hide the pet"*.
+
+### Optional: react when Claude Code finishes
+
+The pet can hop and say *Done!* when a Claude Code session finishes. This uses Claude Code hooks.
+Set it up from a clone of this repo:
 
 ```bash
-scripts/build.sh         # dist/IdlePaws.app + dist/idle-paws.mcpb
-open dist/idle-paws.mcpb
+node scripts/install-hooks.mjs          # turn on
+node scripts/install-hooks.mjs --remove # turn off
 ```
 
-- Builds with `swiftc` directly (SwiftPM in Command Line Tools is broken here); picks the newest SDK the compiler accepts.
-- Signs with the `Claude Pets Dev` keychain identity so the Accessibility grant survives rebuilds (falls back to ad-hoc).
-- Grant System Settings → Privacy & Security → Accessibility → Idle Paws. Without it the floor falls back to a fixed offset.
-- Claude Code: `claude mcp add idle-paws -s user -e IDLE_PAWS_CLIENT=code -- node "<extension dir>/server/index.js"`.
+It adds two hooks to `~/.claude/settings.json` (backed up first) and leaves your other hooks alone.
 
-## Diagnostics
+## Privacy
 
-- Log: `~/Library/Logs/idle-paws.log`
-- Probe Claude's inputs: `open -n -W dist/IdlePaws.app --args --probe-ax`; buttons/fields: `--probe-buttons`
-- A1 CPU benchmark (AX on vs off): `scripts/cpu-bench.py --rounds 2 --seconds 60` (last result: `bench/a1-idle.txt`)
-- Web inspector: Safari → Develop → Idle Paws.
+Everything runs on your Mac. Idle Paws has no accounts, no analytics and no servers of its own.
+
+- The games menu is served locally (`localhost`); the games themselves are the websites you open.
+- To show a picture on each game card, Idle Paws fetches that game's page once to read its preview image.
+- The Accessibility permission covers only the Idle Paws app, not Claude.
+
+## Uninstall
+
+1. Claude Desktop → Settings → Extensions → **Idle Paws** → Uninstall.
+2. If you set up Claude Code reactions: `node scripts/install-hooks.mjs --remove` (do this *before*
+   uninstalling, or Claude Code will report a missing hook).
+3. Optional: remove `~/Library/Application Support/idle-paws` and the Idle Paws entry under System Settings →
+   Privacy & Security → Accessibility.
+
+## Known limitations
+
+- **macOS only, Apple Silicon only** for now.
+- **Unsigned by Apple.** macOS may say the app is from an unidentified developer.
+- **Depends on Claude's layout.** Idle Paws reads Claude's interface through Accessibility. A Claude Desktop
+  update can change it; if the pet can't find the input bar it falls back to the bottom of the window, and if
+  **Games** can't open the browser pane the pet tells you.
+- Some sites can't be opened in Claude's built-in browser (for example NYT Games).
+
+## Building from source
+
+See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+
+## License
+
+[MIT](LICENSE) © 2026 Pratyaksha Gupta
+
+*Idle Paws is an independent project and is not affiliated with or endorsed by Anthropic. Claude is a
+trademark of Anthropic.*
