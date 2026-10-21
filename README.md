@@ -4,6 +4,10 @@
 
 <p align="center">A pixel pet that lives on your Claude Desktop window — and a menu of games for while Claude works.</p>
 
+<p align="center"><img src="media/demo.gif" width="860" alt="Idle Paws demo: a pixel cat on Claude's input bar, its menu, and the games menu in Claude's side pane"></p>
+
+<p align="center"><a href="media/demo.mp4">▶ Watch the demo video (MP4)</a></p>
+
 ---
 
 Waiting for Claude to finish a long task? **Idle Paws** puts a little pixel cat, dog or duck on top of
