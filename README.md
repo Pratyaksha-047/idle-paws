@@ -1,6 +1,6 @@
 # Idle Paws
 
-A pixel pet (cat, dog or duck) that lives on your Claude Desktop window, plus mini games (2048, Sudoku, Minesweeper, Snake, Tetris) for while Claude works. macOS only.
+A pixel pet (cat, dog or duck) that lives on your Claude Desktop window, plus a menu of your own favourite web games for while Claude works. macOS only.
 
 ## How it works
 
@@ -13,7 +13,7 @@ Claude Code    ──(user MCP, stdio)───▶ server/index.js
                                    ├─ transparent panel over Claude's window (click-through except pet/console)
                                    ├─ Accessibility: finds the "Prompt" composer → pet's floor
                                    ├─ WKWebView: pet + console (web/overlay)
-                                   └─ http://localhost:4747 → games (web/games)
+                                   └─ http://localhost:4747 → games menu (web/games) + /games.json
 ```
 
 - One overlay instance; every MCP server holds a lease on `~/Library/Application Support/idle-paws/pets.sock`.
@@ -26,14 +26,15 @@ Claude Code    ──(user MCP, stdio)───▶ server/index.js
 - **Reacts to Claude Code:** when a session finishes (`Stop` hook) the pet hops and says *Done! · project*; when Claude needs you (`Notification` hook) it shows *!* and *Claude needs you*. Install/remove the hooks with `node scripts/install-hooks.mjs [--remove]` (idempotent, backs up `~/.claude/settings.json`). Chat-tab conversations have no hooks, so they don't trigger reactions.
 - Console: throw ball, hide (a paw print stays; double-click it), pet (cat / dog / duck), mode (Auto / Follow me), colour, size, speed, **Play games**.
 - Pets are built from shape primitives in `web/overlay/sprites.js` (`SPECIES`: poses `stand`/`sit`/`sleep` + palettes).
+- **Games are your own links.** Claude Desktop → Settings → Extensions → Idle Paws → **Games**: add a link (`https://lichess.org/training`) or a named link (`Chess puzzles | https://lichess.org/training`) per entry; one entry may also hold several, comma- or newline-separated. No links = no Play button. Phone-friendly sites fit the side pane best; some sites (e.g. NYT Games) are blocked in Claude's built-in browser.
+- The setting reaches the overlay as `server/index.js --games …` → `setGames`, is saved in prefs, and served to the menu at `/games.json` (`server/games.js` parses it; tests in `tests/`). Cards use the site's app icon, else favicon, else its first letter.
 - **Play games** drives Claude's own browser pane through Accessibility (Browser toggle → reuse our tab or New tab → type the URL into Page URL → Return) and opens the games menu. No Claude turn involved; works while Claude is busy.
-- Games live in `web/games/<name>/` (`engine.js` = pure logic with tests in `tests/`, `ui.js` = page). Add one by creating the folder, a thumbnail in `web/games/thumbs/`, a card in `web/games/index.html`, and the id in `GAMES` in `server/index.js`.
 - Ask Claude: *open game*, *open console*, *show/hide pet*, *pet status*.
 
 ## Build & install
 
 ```bash
-npm test                 # game engine tests
+npm test                 # game-link parser tests
 scripts/build.sh         # dist/IdlePaws.app + dist/idle-paws.mcpb
 open dist/idle-paws.mcpb
 ```

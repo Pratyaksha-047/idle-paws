@@ -4,6 +4,8 @@ import Foundation
 final class HTTPServer {
     let root: URL
     private(set) var port: UInt16 = 0
+    /// Generated responses (path -> JSON body). Called on the connection's thread.
+    var dynamicRoutes: [String: () -> Data] = [:]
 
     private static let contentTypes = [
         "html": "text/html; charset=utf-8",
@@ -103,6 +105,9 @@ final class HTTPServer {
 
         let target = String(parts[1].split(separator: "?", maxSplits: 1).first ?? "/")
         let path = target.removingPercentEncoding ?? target
+        if let route = dynamicRoutes[path] {
+            return respond(fd, 200, "OK", headers: ["Content-Type": "application/json"], body: route(), headOnly: method == "HEAD")
+        }
         var file = root.appendingPathComponent(String(path.drop { $0 == "/" })).standardizedFileURL
         guard file.path == root.path || file.path.hasPrefix(root.path + "/") else { return respond(fd, 404, "Not Found") }
 

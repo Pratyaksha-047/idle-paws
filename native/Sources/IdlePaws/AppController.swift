@@ -33,6 +33,10 @@ final class AppController: NSObject, NSApplicationDelegate {
         }
         guard control.start() else { exit(1) }
         control.handler = { [weak self] command, args, reply in self?.handle(command, args, reply) }
+        http.dynamicRoutes["/games.json"] = { [weak self] in
+            let games = DispatchQueue.main.sync { self?.prefs.games ?? [] }
+            return (try? JSONSerialization.data(withJSONObject: ["games": games])) ?? Data("{}".utf8)
+        }
         http.start()
 
         overlay = Overlay(webRoot: Paths.web)
@@ -163,13 +167,23 @@ final class AppController: NSObject, NSApplicationDelegate {
             overlay.send("command", ["name": command])
             reply(["ok": true, "claudeWindow": window != nil])
         case "open_game":
-            reply(["ok": true, "url": gameURL(args["game"] as? String)])
+            reply(["ok": true, "url": menuURL, "games": prefs.games.count])
+        case "setGames":
+            let games = (args["games"] as? [[String: Any]] ?? []).compactMap { game -> [String: String]? in
+                guard let name = game["name"] as? String, let url = game["url"] as? String else { return nil }
+                return ["name": name, "url": url]
+            }
+            prefs.raw["games"] = games
+            prefs.save()
+            overlay.send("prefs", prefs.raw)
+            Log.info("games: \(games.count) configured")
+            reply(["ok": true])
         case "react":
             let kind = args["kind"] as? String ?? "done"
             overlay.send("react", ["kind": kind, "project": args["project"] as? String ?? ""])
             reply(["ok": true])
         case "play":
-            openGame(args["game"] as? String)
+            openGames()
             reply(["ok": true])
         case "status":
             reply([
@@ -178,23 +192,24 @@ final class AppController: NSObject, NSApplicationDelegate {
                 "claudeWindow": window != nil,
                 "floorSource": floor?.source ?? "none",
                 "accessibilityTrusted": AXIsProcessTrusted(),
-                "gamesUrl": "http://localhost:\(http.port)/",
+                "gamesUrl": menuURL,
+                "games": prefs.games.count,
             ])
         default:
             reply(["ok": false, "error": "unknown command \(command)"])
         }
     }
 
-    /// Games menu when `game` is nil, else that game's page.
-    private func gameURL(_ game: String?) -> String {
-        guard let game, !game.isEmpty else { return "http://localhost:\(http.port)/" }
-        return "http://localhost:\(http.port)/\(game)/"
-    }
+    private var menuURL: String { "http://localhost:\(http.port)/" }
 
-    /// Drives Claude's browser pane to the games; on failure the cat says so.
-    private func openGame(_ game: String?) {
+    /// Drives Claude's browser pane to the games menu; on failure (or with no games) the pet says so.
+    private func openGames() {
+        guard !prefs.games.isEmpty else {
+            overlay.send("notice", ["text": "No games yet. Add links in Claude Desktop → Settings → Extensions → Idle Paws."])
+            return
+        }
         guard let pid = tracker.pid else { return }
-        let url = gameURL(game)
+        let url = menuURL
         axQueue.async { [weak self] in
             let result = BrowserPaneOpener.open(url: url, tabTitleHint: "Idle Paws", pid: pid)
             DispatchQueue.main.async {
@@ -217,7 +232,7 @@ final class AppController: NSObject, NSApplicationDelegate {
             prefs.raw.merge(values) { _, new in new }
             prefs.save()
         case "openGame":
-            openGame(message["game"] as? String)
+            openGames()
         case "log":
             Log.info("web: \(message["message"] ?? "")")
         default:

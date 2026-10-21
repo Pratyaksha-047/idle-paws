@@ -23,4 +23,6 @@ struct Prefs {
     /// Gap between the text area's top and the input card's top border.
     var floorPad: Double { raw["floorPad"] as? Double ?? 14 }
     var axPrompted: Bool { raw["axPrompted"] as? Bool ?? false }
+    /// The user's game links ({name, url}) from the extension settings.
+    var games: [[String: String]] { raw["games"] as? [[String: String]] ?? [] }
 }

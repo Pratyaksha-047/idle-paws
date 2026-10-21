@@ -9,6 +9,7 @@ const net = require('net');
 const os = require('os');
 const path = require('path');
 const readline = require('readline');
+const { parseGames } = require('./games');
 
 const VERSION = '0.1.0';
 const ROOT = path.resolve(__dirname, '..');
@@ -17,7 +18,10 @@ const APP_EXE = path.join(APP_PATH, 'Contents', 'MacOS', 'IdlePaws');
 const SOCKET_PATH = path.join(os.homedir(), 'Library', 'Application Support', 'idle-paws', 'pets.sock');
 const CLIENT = process.env.IDLE_PAWS_CLIENT || 'unknown';
 const REQUEST_TIMEOUT_MS = 4000;
-const GAMES = ['2048', 'sudoku', 'minesweeper', 'snake', 'tetris'];
+// Game links from the extension settings (Claude Desktop passes them after --games). Other
+// clients (Claude Code) pass none and leave the saved list alone.
+const gamesFlag = process.argv.indexOf('--games');
+const CONFIGURED_GAMES = gamesFlag >= 0 ? parseGames(process.argv.slice(gamesFlag + 1)) : null;
 
 const log = (...parts) => process.stderr.write(`[idle-paws:${CLIENT}] ${parts.join(' ')}\n`);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -91,6 +95,7 @@ const attach = (s) => {
   });
   s.on('error', () => {});
   s.write(`${JSON.stringify({ id: 0, cmd: 'hello', args: { client: CLIENT } })}\n`);
+  if (CONFIGURED_GAMES) s.write(`${JSON.stringify({ id: 0, cmd: 'setGames', args: { games: CONFIGURED_GAMES } })}\n`);
 };
 
 const connect = async ({ launch }) => {
@@ -144,15 +149,9 @@ const TOOLS = [
   {
     name: 'open_game',
     description:
-      'Open Idle Paws mini games for the user to play while Claude works. Returns a localhost URL; ' +
-      'open it in the built-in browser pane (side panel). Without `game` it opens the games menu.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        game: { type: 'string', enum: GAMES, description: 'Open this game directly instead of the menu.' },
-      },
-      additionalProperties: false,
-    },
+      "Open the user's games menu (web games they added in the Idle Paws extension settings). Returns a localhost URL; " +
+      'open it in the built-in browser pane (side panel).',
+    inputSchema: emptySchema,
   },
   { name: 'open_console', description: 'Open the Idle Paws console (pet controls and games) next to the pet.', inputSchema: emptySchema },
   { name: 'pet_show', description: 'Show the Idle Paws pet on the Claude window.', inputSchema: emptySchema },
@@ -165,11 +164,12 @@ const text = (value, isError = false) => ({ content: [{ type: 'text', text: valu
 const callTool = async (name, args = {}) => {
   switch (name) {
     case 'open_game': {
-      const { game } = args;
-      if (game && !GAMES.includes(game)) return text(`Unknown game "${game}". Available: ${GAMES.join(', ')}.`, true);
-      const res = await request('open_game', { game });
+      const res = await request('open_game');
+      if (!res.games) {
+        return text('No games set up yet. The user can add game links in Claude Desktop → Settings → Extensions → Idle Paws.');
+      }
       return text(
-        `${res.url}\nOpen this URL in the built-in browser pane (side panel) so the user can play. ` +
+        `${res.url}\nOpen this URL in the built-in browser pane (side panel) so the user can pick a game. ` +
           'If no built-in browser is available, give the user the link.',
       );
     }

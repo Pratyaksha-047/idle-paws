@@ -3,8 +3,8 @@
   "name": "idle-paws",
   "display_name": "Idle Paws",
   "version": "0.1.0",
-  "description": "A pixel pet (cat, dog or duck) that hangs out on your Claude window, plus mini games (2048, Sudoku, Minesweeper, Snake, Tetris) to play while Claude works.",
-  "long_description": "Idle Paws adds a pixel pet that walks, sleeps and plays fetch on top of Claude's input bar, and hops when a Claude Code session finishes. Right-click the pet for the console (pet controls and games); double-click it to play fetch. Click Play or ask Claude to \"open game\" to pick a game in the side browser pane. macOS only.",
+  "description": "A pixel pet (cat, dog or duck) that hangs out on your Claude window, plus a menu of your favourite web games to play while Claude works.",
+  "long_description": "Idle Paws adds a pixel pet that walks, sleeps and plays fetch on top of Claude's input bar, and hops when a Claude Code session finishes. Right-click the pet for the console (pet controls and games); double-click it to play fetch. Add links to the games you like in the extension settings; Play opens them as a menu in the side browser pane. macOS only.",
   "icon": "icon.png",
   "author": {
     "name": "Pratyaksha Gupta"
@@ -14,20 +14,29 @@
     "entry_point": "server/index.js",
     "mcp_config": {
       "command": "node",
-      "args": ["${__dirname}/server/index.js"],
+      "args": ["${__dirname}/server/index.js", "--games", "${user_config.games}"],
       "env": {
         "IDLE_PAWS_CLIENT": "desktop"
       }
     }
   },
+  "user_config": {
+    "games": {
+      "type": "string",
+      "title": "Games",
+      "description": "Links to games you'd like to play while Claude works, opened in Claude's side browser pane. One per entry: a link (https://lichess.org/training) or a named link (Chess puzzles | https://lichess.org/training). Pick sites that work on a phone so they fit the pane. Leave empty for no games.",
+      "multiple": true,
+      "required": false
+    }
+  },
   "tools": [
-    { "name": "open_game", "description": "Open the games menu (2048, Sudoku, Minesweeper, Snake, Tetris) in the browser pane" },
+    { "name": "open_game", "description": "Open your games menu in the browser pane" },
     { "name": "open_console", "description": "Open the pet console" },
     { "name": "pet_show", "description": "Show the pet" },
     { "name": "pet_hide", "description": "Hide the pet" },
     { "name": "pet_status", "description": "Overlay status" }
   ],
-  "keywords": ["pet", "cat", "dog", "duck", "game", "2048", "sudoku", "tetris", "fun"],
+  "keywords": ["pet", "cat", "dog", "duck", "games", "fun"],
   "license": "MIT",
   "compatibility": {
     "platforms": ["darwin"],

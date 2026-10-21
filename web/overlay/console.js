@@ -44,7 +44,7 @@
           </div>
         </section>
         <button class="play" data-act="play">▶ Play games</button>
-        <footer>Opens in the side browser pane.</footer>`;
+        <footer class="games-hint">Opens your games in the side browser pane.</footer>`;
       root.appendChild(this.el);
       this.el.addEventListener('click', (e) => this.onClick(e));
       this.el.addEventListener('mousedown', (e) => e.stopPropagation());
@@ -115,6 +115,10 @@
     sync() {
       this.renderSwatches();
       const prefs = this.world.prefs;
+      // Games are opt-in: no links in the extension settings, no Play button.
+      const hasGames = Array.isArray(prefs.games) && prefs.games.length > 0;
+      this.el.querySelector('[data-act=play]').classList.toggle('hidden', !hasGames);
+      this.el.querySelector('.games-hint').classList.toggle('hidden', !hasGames);
       this.el.querySelectorAll('[data-pref]').forEach((group) => {
         const value = String(prefs[group.dataset.pref]);
         group.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.val === value));

@@ -4,18 +4,21 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Games · Idle Paws</title>
-  <link rel="stylesheet" href="common.css">
   <style>
-    main.menu { width: min(640px, 100vw - 24px); }
-    .menu h1 { font-size: 26px; margin-bottom: 14px; }
+    :root { --bg: #1f1e1d; --panel: #2a2927; --line: #3d3c38; --text: #ece9df; --muted: #a3a097; --accent: #d97757; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text);
+      font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; }
+    main { width: min(640px, 100vw - 24px); margin: 14px auto 20px; }
+    h1 { margin: 0 0 14px; font-size: 26px; letter-spacing: -0.5px; color: var(--accent); }
     .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
     .card {
       position: relative;
-      display: block;
+      display: grid;
+      place-items: center;
       aspect-ratio: 16 / 10;
       border-radius: 22px;
       overflow: hidden;
-      background: var(--panel) center / cover no-repeat;
       border: 3px solid var(--line);
       box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
       color: var(--text);
@@ -23,27 +26,87 @@
       transition: transform 0.12s ease, border-color 0.12s ease;
     }
     .card:hover, .card:focus-visible { transform: translateY(-2px) scale(1.015); border-color: var(--accent); outline: none; }
-    .card span {
+    .card .name {
       position: absolute;
       left: 12px;
       top: 8px;
-      font-size: clamp(15px, 4.2vw, 22px);
+      right: 12px;
+      font-size: clamp(15px, 4.2vw, 21px);
       font-weight: 800;
       letter-spacing: -0.3px;
       text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
+    .card .host { position: absolute; left: 12px; bottom: 8px; font-size: 11px; color: rgba(255, 255, 255, 0.7); }
+    .card img, .card .letter { width: 30%; aspect-ratio: 1; margin-top: 10px; border-radius: 18%; }
+    .card img { object-fit: cover; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35); background: rgba(255, 255, 255, 0.08); }
+    .card .letter { display: grid; place-items: center; font-size: clamp(28px, 9vw, 44px); font-weight: 800;
+      background: rgba(255, 255, 255, 0.12); text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5); }
+    .empty { padding: 22px; border: 1px dashed var(--line); border-radius: 16px; color: var(--muted); line-height: 1.6; }
+    .empty b { color: var(--text); }
   </style>
 </head>
 <body>
-  <main class="menu">
+  <main>
     <h1>🐾 Idle Paws games</h1>
-    <div class="grid">
-      <a class="card" href="2048/" style="background-image: url(thumbs/2048.svg)"><span>2048</span></a>
-      <a class="card" href="sudoku/" style="background-image: url(thumbs/sudoku.svg)"><span>Sudoku</span></a>
-      <a class="card" href="minesweeper/" style="background-image: url(thumbs/minesweeper.svg)"><span>Minesweeper</span></a>
-      <a class="card" href="snake/" style="background-image: url(thumbs/snake.svg)"><span>Snake</span></a>
-      <a class="card" href="tetris/" style="background-image: url(thumbs/tetris.svg)"><span>Tetris</span></a>
-    </div>
+    <div id="grid" class="grid"></div>
   </main>
+  <script>
+    // Cards for the user's game links (from the extension settings via /games.json).
+    // Picture: the site's app icon, else its favicon, else its first letter.
+    const hue = (text) => [...text].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
+
+    const card = ({ name, url }) => {
+      const link = new URL(url);
+      const a = document.createElement('a');
+      a.className = 'card';
+      a.href = link.href;
+      const h = hue(link.hostname);
+      a.style.background = `linear-gradient(135deg, hsl(${h} 42% 34%), hsl(${(h + 40) % 360} 46% 20%))`;
+
+      const title = document.createElement('span');
+      title.className = 'name';
+      title.textContent = name;
+      const host = document.createElement('span');
+      host.className = 'host';
+      host.textContent = link.hostname.replace(/^www\./, '');
+
+      const letter = document.createElement('div');
+      letter.className = 'letter';
+      letter.textContent = (name.trim()[0] || '?').toUpperCase();
+      const img = document.createElement('img');
+      img.alt = '';
+      const candidates = [`${link.origin}/apple-touch-icon.png`, `${link.origin}/favicon.ico`];
+      img.onerror = () => {
+        if (candidates.length) img.src = candidates.shift();
+        else img.replaceWith(letter);
+      };
+      img.onload = () => {
+        if (img.naturalWidth < 32 && candidates.length) img.src = candidates.shift();
+      };
+      img.src = candidates.shift();
+
+      a.append(img, title, host);
+      return a;
+    };
+
+    const render = (games) => {
+      const grid = document.getElementById('grid');
+      if (!games.length) {
+        grid.outerHTML = `<p class="empty"><b>No games yet.</b><br>Add links to games you like in
+          Claude Desktop → Settings → Extensions → Idle Paws → Games.<br>
+          Sites that work on a phone fit this side pane best.</p>`;
+        return;
+      }
+      grid.append(...games.map(card));
+    };
+
+    fetch('/games.json')
+      .then((response) => response.json())
+      .then(({ games }) => render(games || []))
+      .catch(() => render([]));
+  </script>
 </body>
 </html>
