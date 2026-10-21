@@ -4,8 +4,6 @@
 
 <p align="center">A pixel pet that lives on your Claude Desktop window — and a menu of games for while Claude works.</p>
 
-<!-- Demo GIF goes here: docs/demo.gif -->
-
 ---
 
 Waiting for Claude to finish a long task? **Idle Paws** puts a little pixel cat, dog or duck on top of
@@ -97,7 +95,14 @@ Everything runs on your Mac. Idle Paws has no accounts, no analytics and no serv
 
 ## Building from source
 
-See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+Needs Xcode Command Line Tools (Swift) and Node.js.
+
+```bash
+scripts/build.sh            # builds dist/IdlePaws.app and dist/idle-paws.mcpb
+open dist/idle-paws.mcpb    # install into Claude Desktop
+```
+
+Logs go to `~/Library/Logs/idle-paws.log`.
 
 ## License
 
