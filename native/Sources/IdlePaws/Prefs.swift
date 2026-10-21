@@ -25,4 +25,6 @@ struct Prefs {
     var axPrompted: Bool { raw["axPrompted"] as? Bool ?? false }
     /// The user's game links ({name, url}) from the extension settings.
     var games: [[String: String]] { raw["games"] as? [[String: String]] ?? [] }
+    /// Cached preview images by game URL; "" means the page has none.
+    var gameImages: [String: String] { raw["gameImages"] as? [String: String] ?? [:] }
 }

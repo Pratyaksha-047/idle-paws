@@ -34,7 +34,7 @@ final class AppController: NSObject, NSApplicationDelegate {
         guard control.start() else { exit(1) }
         control.handler = { [weak self] command, args, reply in self?.handle(command, args, reply) }
         http.dynamicRoutes["/games.json"] = { [weak self] in
-            let games = DispatchQueue.main.sync { self?.prefs.games ?? [] }
+            let games = DispatchQueue.main.sync { self?.gamesWithImages() ?? [] }
             return (try? JSONSerialization.data(withJSONObject: ["games": games])) ?? Data("{}".utf8)
         }
         http.start()
@@ -64,6 +64,7 @@ final class AppController: NSObject, NSApplicationDelegate {
             prefs.save()
             _ = AX.isTrusted(prompt: true)
         }
+        findMissingGameImages()
         Log.info("started web=\(Paths.web.path) port=\(http.port) dev=\(devMode) axTrusted=\(AXIsProcessTrusted())")
     }
 
@@ -177,6 +178,7 @@ final class AppController: NSObject, NSApplicationDelegate {
             prefs.save()
             overlay.send("prefs", prefs.raw)
             Log.info("games: \(games.count) configured")
+            findMissingGameImages()
             reply(["ok": true])
         case "react":
             let kind = args["kind"] as? String ?? "done"
@@ -201,6 +203,31 @@ final class AppController: NSObject, NSApplicationDelegate {
     }
 
     private var menuURL: String { "http://localhost:\(http.port)/" }
+
+    private func gamesWithImages() -> [[String: String]] {
+        let images = prefs.gameImages
+        return prefs.games.map { game in
+            var entry = game
+            if let url = game["url"], let image = images[url], !image.isEmpty { entry["image"] = image }
+            return entry
+        }
+    }
+
+    /// Looks up the preview image once per game link and caches the result (including "none").
+    private func findMissingGameImages() {
+        let known = prefs.gameImages
+        for game in prefs.games {
+            guard let link = game["url"], known[link] == nil, let page = URL(string: link) else { continue }
+            GameImageFinder.find(page) { [weak self] image in
+                guard let self else { return }
+                var images = self.prefs.gameImages
+                images[link] = image?.absoluteString ?? ""
+                self.prefs.raw["gameImages"] = images
+                self.prefs.save()
+                Log.info("games: image for \(page.host ?? link): \(image?.absoluteString ?? "none")")
+            }
+        }
+    }
 
     /// Drives Claude's browser pane to the games menu; on failure (or with no games) the pet says so.
     private func openGames() {

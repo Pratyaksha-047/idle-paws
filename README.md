@@ -27,7 +27,7 @@ Claude Code    ──(user MCP, stdio)───▶ server/index.js
 - Console: throw ball, hide (a paw print stays; double-click it), pet (cat / dog / duck), mode (Auto / Follow me), colour, size, speed, **Play games**.
 - Pets are built from shape primitives in `web/overlay/sprites.js` (`SPECIES`: poses `stand`/`sit`/`sleep` + palettes).
 - **Games are your own links.** Claude Desktop → Settings → Extensions → Idle Paws → **Games**: add a link (`https://lichess.org/training`) or a named link (`Chess puzzles | https://lichess.org/training`) per entry; one entry may also hold several, comma- or newline-separated. No links = no Play button. Phone-friendly sites fit the side pane best; some sites (e.g. NYT Games) are blocked in Claude's built-in browser.
-- The setting reaches the overlay as `server/index.js --games …` → `setGames`, is saved in prefs, and served to the menu at `/games.json` (`server/games.js` parses it; tests in `tests/`). Cards use the site's app icon, else favicon, else its first letter.
+- The setting reaches the overlay as `server/index.js --games …` → `setGames`, is saved in prefs, and served to the menu at `/games.json` (`server/games.js` parses it; tests in `tests/`). Cards show the game's preview image (the page's `og:image` / `twitter:image`, looked up once by the app and cached in prefs), else just the game's name; two cards per row.
 - **Play games** drives Claude's own browser pane through Accessibility (Browser toggle → reuse our tab or New tab → type the URL into Page URL → Return) and opens the games menu. No Claude turn involved; works while Claude is busy.
 - Ask Claude: *open game*, *open console*, *show/hide pet*, *pet status*.
 

@@ -29,21 +29,22 @@
     .card .name {
       position: absolute;
       left: 12px;
-      top: 8px;
       right: 12px;
+      bottom: 9px;
       font-size: clamp(15px, 4.2vw, 21px);
       font-weight: 800;
       letter-spacing: -0.3px;
-      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .card .host { position: absolute; left: 12px; bottom: 8px; font-size: 11px; color: rgba(255, 255, 255, 0.7); }
-    .card img, .card .letter { width: 30%; aspect-ratio: 1; margin-top: 10px; border-radius: 18%; }
-    .card img { object-fit: cover; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35); background: rgba(255, 255, 255, 0.08); }
-    .card .letter { display: grid; place-items: center; font-size: clamp(28px, 9vw, 44px); font-weight: 800;
-      background: rgba(255, 255, 255, 0.12); text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5); }
+    .card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .card.has-image::after { content: ""; position: absolute; inset: 45% 0 0; background: linear-gradient(transparent, rgba(0, 0, 0, 0.75)); }
+    .card.has-image .name { z-index: 1; }
+    /* No preview image: just the name, big, in the middle. */
+    .card.name-only .name { position: static; padding: 0 14px; font-size: clamp(18px, 5.5vw, 26px); text-align: center;
+      white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
     .empty { padding: 22px; border: 1px dashed var(--line); border-radius: 16px; color: var(--muted); line-height: 1.6; }
     .empty b { color: var(--text); }
   </style>
@@ -54,41 +55,33 @@
     <div id="grid" class="grid"></div>
   </main>
   <script>
-    // Cards for the user's game links (from the extension settings via /games.json).
-    // Picture: the site's app icon, else its favicon, else its first letter.
+    // Cards for the user's game links (from the extension settings via /games.json):
+    // the game's preview image when the site has one, otherwise just its name.
     const hue = (text) => [...text].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
 
-    const card = ({ name, url }) => {
+    const card = ({ name, url, image }) => {
       const link = new URL(url);
       const a = document.createElement('a');
-      a.className = 'card';
       a.href = link.href;
       const h = hue(link.hostname);
       a.style.background = `linear-gradient(135deg, hsl(${h} 42% 34%), hsl(${(h + 40) % 360} 46% 20%))`;
-
       const title = document.createElement('span');
       title.className = 'name';
       title.textContent = name;
-      const host = document.createElement('span');
-      host.className = 'host';
-      host.textContent = link.hostname.replace(/^www\./, '');
-
-      const letter = document.createElement('div');
-      letter.className = 'letter';
-      letter.textContent = (name.trim()[0] || '?').toUpperCase();
+      const nameOnly = () => {
+        a.className = 'card name-only';
+        a.replaceChildren(title);
+      };
+      if (!image) {
+        nameOnly();
+        return a;
+      }
+      a.className = 'card has-image';
       const img = document.createElement('img');
       img.alt = '';
-      const candidates = [`${link.origin}/apple-touch-icon.png`, `${link.origin}/favicon.ico`];
-      img.onerror = () => {
-        if (candidates.length) img.src = candidates.shift();
-        else img.replaceWith(letter);
-      };
-      img.onload = () => {
-        if (img.naturalWidth < 32 && candidates.length) img.src = candidates.shift();
-      };
-      img.src = candidates.shift();
-
-      a.append(img, title, host);
+      img.onerror = nameOnly;
+      img.src = image;
+      a.append(img, title);
       return a;
     };
 
