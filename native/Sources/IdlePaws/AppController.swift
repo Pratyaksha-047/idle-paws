@@ -37,6 +37,23 @@ final class AppController: NSObject, NSApplicationDelegate {
             let games = DispatchQueue.main.sync { self?.gamesWithImages() ?? [] }
             return (try? JSONSerialization.data(withJSONObject: ["games": games])) ?? Data("{}".utf8)
         }
+        http.postRoutes["/games"] = { [weak self] body in
+            let request = (try? JSONSerialization.jsonObject(with: body)) as? [String: Any] ?? [:]
+            let result: [String: Any] = DispatchQueue.main.sync {
+                guard let self else { return ["ok": false] }
+                switch request["action"] as? String {
+                case "add":
+                    return self.addGame(name: request["name"] as? String, url: request["url"] as? String ?? "")
+                case "remove":
+                    return self.removeGame(request["url"] as? String ?? "")
+                default:
+                    return ["ok": false, "error": "unknown action"]
+                }
+            }
+            var payload = result
+            payload["games"] = DispatchQueue.main.sync { self?.gamesWithImages() ?? [] }
+            return (try? JSONSerialization.data(withJSONObject: payload)) ?? Data("{}".utf8)
+        }
         http.start()
 
         overlay = Overlay(webRoot: Paths.web)
@@ -170,16 +187,19 @@ final class AppController: NSObject, NSApplicationDelegate {
         case "open_game":
             reply(["ok": true, "url": menuURL, "games": prefs.games.count])
         case "setGames":
-            let games = (args["games"] as? [[String: Any]] ?? []).compactMap { game -> [String: String]? in
-                guard let name = game["name"] as? String, let url = game["url"] as? String else { return nil }
-                return ["name": name, "url": url]
+            let next = (args["games"] as? [[String: Any]] ?? []).compactMap {
+                GameList.normalize(name: $0["name"] as? String, url: $0["url"] as? String ?? "")
             }
-            prefs.raw["games"] = games
-            prefs.save()
-            overlay.send("prefs", prefs.raw)
-            Log.info("games: \(games.count) configured")
-            findMissingGameImages()
+            let previous = prefs.raw["settingsGames"] as? [[String: String]] ?? []
+            prefs.raw["settingsGames"] = next
+            saveGames(GameList.applySettings(current: prefs.games, previous: previous, next: next))
             reply(["ok": true])
+        case "addGame":
+            reply(addGame(name: args["name"] as? String, url: args["url"] as? String ?? ""))
+        case "removeGame":
+            reply(removeGame(args["game"] as? String ?? ""))
+        case "listGames":
+            reply(["ok": true, "games": prefs.games])
         case "react":
             let kind = args["kind"] as? String ?? "done"
             overlay.send("react", ["kind": kind, "project": args["project"] as? String ?? ""])
@@ -203,6 +223,29 @@ final class AppController: NSObject, NSApplicationDelegate {
     }
 
     private var menuURL: String { "http://localhost:\(http.port)/" }
+
+    private func saveGames(_ games: [[String: String]]) {
+        prefs.raw["games"] = games
+        prefs.save()
+        overlay.send("prefs", prefs.raw)
+        Log.info("games: \(games.count) in list")
+        findMissingGameImages()
+    }
+
+    private func addGame(name: String?, url: String) -> [String: Any] {
+        guard let game = GameList.normalize(name: name, url: url) else { return ["ok": false, "error": "that isn't a web link"] }
+        let result = GameList.add(game, to: prefs.games)
+        if let error = result.error { return ["ok": false, "error": error] }
+        saveGames(result.games)
+        return ["ok": true, "game": game]
+    }
+
+    private func removeGame(_ query: String) -> [String: Any] {
+        let result = GameList.remove(query, from: prefs.games)
+        guard let removed = result.removed else { return ["ok": false, "error": "no game matches \"\(query)\""] }
+        saveGames(result.games)
+        return ["ok": true, "game": removed]
+    }
 
     private func gamesWithImages() -> [[String: String]] {
         let images = prefs.gameImages
@@ -229,12 +272,8 @@ final class AppController: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// Drives Claude's browser pane to the games menu; on failure (or with no games) the pet says so.
+    /// Drives Claude's browser pane to the games menu (where games can also be added); on failure the pet says so.
     private func openGames() {
-        guard !prefs.games.isEmpty else {
-            overlay.send("notice", ["text": "No games yet. Add links in Claude Desktop → Settings → Extensions → Idle Paws."])
-            return
-        }
         guard let pid = tracker.pid else { return }
         let url = menuURL
         axQueue.async { [weak self] in

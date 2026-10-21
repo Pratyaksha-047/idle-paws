@@ -115,10 +115,9 @@
     sync() {
       this.renderSwatches();
       const prefs = this.world.prefs;
-      // Games are opt-in: no links in the extension settings, no Play button.
+      // With no games yet, the same button opens the menu so games can be added there.
       const hasGames = Array.isArray(prefs.games) && prefs.games.length > 0;
-      this.el.querySelector('[data-act=play]').classList.toggle('hidden', !hasGames);
-      this.el.querySelector('.games-hint').classList.toggle('hidden', !hasGames);
+      this.el.querySelector('[data-act=play]').textContent = hasGames ? '▶ Play games' : '＋ Add games';
       this.el.querySelectorAll('[data-pref]').forEach((group) => {
         const value = String(prefs[group.dataset.pref]);
         group.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.val === value));

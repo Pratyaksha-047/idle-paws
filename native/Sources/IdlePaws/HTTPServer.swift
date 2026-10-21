@@ -6,6 +6,9 @@ final class HTTPServer {
     private(set) var port: UInt16 = 0
     /// Generated responses (path -> JSON body). Called on the connection's thread.
     var dynamicRoutes: [String: () -> Data] = [:]
+    /// JSON POST handlers (path -> body in, body out). Only same-origin requests reach them.
+    var postRoutes: [String: (Data) -> Data] = [:]
+    private static let maxBody = 65536
 
     private static let contentTypes = [
         "html": "text/html; charset=utf-8",
@@ -101,10 +104,31 @@ final class HTTPServer {
             .map { $0.dropFirst(5).trimmingCharacters(in: .whitespaces).lowercased() } ?? ""
         let allowedHosts = ["localhost:\(port)", "127.0.0.1:\(port)", "[::1]:\(port)"]
         guard allowedHosts.contains(host) else { return respond(fd, 403, "Forbidden") }
-        guard method == "GET" || method == "HEAD" else { return respond(fd, 405, "Method Not Allowed") }
-
         let target = String(parts[1].split(separator: "?", maxSplits: 1).first ?? "/")
         let path = target.removingPercentEncoding ?? target
+
+        if method == "POST", let route = postRoutes[path] {
+            // Cross-site pages can POST to localhost too; require our own Origin and a JSON body
+            // (which makes browsers preflight cross-origin requests, and we never answer preflights).
+            let header = { (name: String) -> String in
+                lines.first { $0.lowercased().hasPrefix("\(name):") }
+                    .map { $0.dropFirst(name.count + 1).trimmingCharacters(in: .whitespaces) } ?? ""
+            }
+            let allowedOrigins = allowedHosts.map { "http://\($0)" }
+            guard allowedOrigins.contains(header("origin").lowercased()) else { return respond(fd, 403, "Forbidden") }
+            guard header("content-type").lowercased().hasPrefix("application/json") else { return respond(fd, 415, "Unsupported Media Type") }
+            guard let length = Int(header("content-length")), length >= 0, length <= Self.maxBody else {
+                return respond(fd, 413, "Payload Too Large")
+            }
+            var body = Data(request[(request.range(of: terminator)!.upperBound)...])
+            while body.count < length {
+                let count = read(fd, &chunk, chunk.count)
+                if count <= 0 { return }
+                body.append(contentsOf: chunk[0..<count])
+            }
+            return respond(fd, 200, "OK", headers: ["Content-Type": "application/json"], body: route(body.prefix(length)))
+        }
+        guard method == "GET" || method == "HEAD" else { return respond(fd, 405, "Method Not Allowed") }
         if let route = dynamicRoutes[path] {
             return respond(fd, 200, "OK", headers: ["Content-Type": "application/json"], body: route(), headOnly: method == "HEAD")
         }

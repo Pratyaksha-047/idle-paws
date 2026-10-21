@@ -24,13 +24,16 @@
     "games": {
       "type": "string",
       "title": "Games",
-      "description": "Links to games you'd like to play while Claude works, opened in Claude's side browser pane. One per entry: a link (https://lichess.org/training) or a named link (Chess puzzles | https://lichess.org/training). Pick sites that work on a phone so they fit the pane. Leave empty for no games.",
+      "description": "Links to games you'd like to play while Claude works, opened in Claude's side browser pane. One per entry: a link (https://lichess.org/training) or a named link (Chess puzzles | https://lichess.org/training). Pick sites that work on a phone so they fit the pane. You can also add or remove games any time from the games menu (+ Add game) or by asking Claude.",
       "multiple": true,
       "required": false
     }
   },
   "tools": [
     { "name": "open_game", "description": "Open your games menu in the browser pane" },
+    { "name": "add_game", "description": "Add a game link to your games menu" },
+    { "name": "remove_game", "description": "Remove a game from your games menu" },
+    { "name": "list_games", "description": "List your games" },
     { "name": "open_console", "description": "Open the pet console" },
     { "name": "pet_show", "description": "Show the pet" },
     { "name": "pet_hide", "description": "Hide the pet" },

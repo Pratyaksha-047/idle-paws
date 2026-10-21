@@ -153,6 +153,30 @@ const TOOLS = [
       'open it in the built-in browser pane (side panel).',
     inputSchema: emptySchema,
   },
+  {
+    name: 'add_game',
+    description: "Add a web game to the user's Idle Paws games menu (opened in the side browser pane). Prefer sites that work on a phone.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        url: { type: 'string', description: 'Link to the game, e.g. https://lichess.org/training' },
+        name: { type: 'string', description: 'Optional display name; defaults to the site name.' },
+      },
+      required: ['url'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'remove_game',
+    description: "Remove a game from the user's Idle Paws games menu, by its name or link.",
+    inputSchema: {
+      type: 'object',
+      properties: { game: { type: 'string', description: 'Game name or link.' } },
+      required: ['game'],
+      additionalProperties: false,
+    },
+  },
+  { name: 'list_games', description: "List the games in the user's Idle Paws games menu.", inputSchema: emptySchema },
   { name: 'open_console', description: 'Open the Idle Paws console (pet controls and games) next to the pet.', inputSchema: emptySchema },
   { name: 'pet_show', description: 'Show the Idle Paws pet on the Claude window.', inputSchema: emptySchema },
   { name: 'pet_hide', description: 'Hide the Idle Paws pet (a paw print stays; double-click it to bring the pet back).', inputSchema: emptySchema },
@@ -165,13 +189,26 @@ const callTool = async (name, args = {}) => {
   switch (name) {
     case 'open_game': {
       const res = await request('open_game');
-      if (!res.games) {
-        return text('No games set up yet. The user can add game links in Claude Desktop → Settings → Extensions → Idle Paws.');
-      }
+      const empty = res.games ? '' : ' The menu is empty: the user can add games with its "+ Add game" card, or you can use add_game.';
       return text(
-        `${res.url}\nOpen this URL in the built-in browser pane (side panel) so the user can pick a game. ` +
+        `${res.url}\nOpen this URL in the built-in browser pane (side panel) so the user can pick a game.${empty} ` +
           'If no built-in browser is available, give the user the link.',
       );
+    }
+    case 'add_game': {
+      const res = await request('addGame', { url: args.url, name: args.name });
+      if (!res.ok) return text(`Couldn't add it: ${res.error}.`, true);
+      return text(`Added "${res.game.name}" (${res.game.url}) to the games menu.`);
+    }
+    case 'remove_game': {
+      const res = await request('removeGame', { game: args.game });
+      if (!res.ok) return text(`Couldn't remove it: ${res.error}.`, true);
+      return text(`Removed "${res.game.name}" from the games menu.`);
+    }
+    case 'list_games': {
+      const res = await request('listGames');
+      if (!res.games.length) return text('No games yet.');
+      return text(res.games.map((g) => `- ${g.name}: ${g.url}`).join('\n'));
     }
     case 'open_console':
       await request('console');
