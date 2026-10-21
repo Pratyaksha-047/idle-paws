@@ -5,12 +5,11 @@ import Foundation
 enum GameList {
     typealias Game = [String: String]
 
-    /// Starter games: each checked to load in Claude's side pane, fit ~400px, and need no login.
+    /// Starter games: single-player only, each checked to load in Claude's side pane, fit ~400px, and need no login.
     static let defaults: [Game] = [
         ["name": "Chess puzzles", "url": "https://lichess.org/training"],
         ["name": "Murdoku", "url": "https://murdoku.com/"],
         ["name": "Contexto", "url": "https://contexto.me/"],
-        ["name": "Draw & guess", "url": "https://skribbl.io/"],
         ["name": "Neal.fun", "url": "https://neal.fun/"],
     ]
 
