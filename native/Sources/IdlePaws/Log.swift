@@ -21,8 +21,4 @@ enum Log {
             FileHandle.standardError.write(data)
         }
     }
-
-    static func flush() {
-        queue.sync {}
-    }
 }
