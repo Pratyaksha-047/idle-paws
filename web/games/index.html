@@ -74,8 +74,8 @@
   <main>
     <h1>🐾 Idle Paws games</h1>
     <div id="grid" class="grid"></div>
-    <p class="hint">Sites that work on a phone fit this side pane best. You can also ask Claude to “add a game”,
-      or set games in Claude Desktop → Settings → Extensions → Idle Paws.</p>
+    <p class="hint" id="hint">Add any game you like with + Add game (sites that work on a phone fit this pane best),
+      remove one with ×, or just ask Claude to “add a game”.</p>
   </main>
   <dialog id="add-dialog">
     <form id="add-form" method="dialog">
@@ -155,7 +155,15 @@
     const load = () =>
       fetch('/games.json')
         .then((response) => response.json())
-        .then(({ games }) => render(games || []))
+        .then(({ games, enabled }) => {
+          if (enabled === false) {
+            document.getElementById('grid').replaceChildren();
+            document.getElementById('hint').textContent =
+              'Games are turned off. Turn on “Show games” in Claude Desktop → Settings → Extensions → Idle Paws.';
+            return;
+          }
+          render(games || []);
+        })
         .catch(() => render([]));
 
     // Add/remove go to the local overlay app; the response carries the updated list.

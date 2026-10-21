@@ -23,8 +23,10 @@ struct Prefs {
     /// Gap between the text area's top and the input card's top border.
     var floorPad: Double { raw["floorPad"] as? Double ?? 14 }
     var axPrompted: Bool { raw["axPrompted"] as? Bool ?? false }
-    /// The user's game links ({name, url}) from the extension settings.
-    var games: [[String: String]] { raw["games"] as? [[String: String]] ?? [] }
+    /// The user's games ({name, url}); starter games until the user changes the list.
+    var games: [[String: String]] { raw["games"] as? [[String: String]] ?? GameList.defaults }
+    /// "Show games" from the extension settings.
+    var showGames: Bool { raw["showGames"] as? Bool ?? true }
     /// Cached preview images by game URL; "" means the page has none.
     var gameImages: [String: String] { raw["gameImages"] as? [String: String] ?? [:] }
 }

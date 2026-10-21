@@ -1,10 +1,18 @@
 import Foundation
 
-/// The user's games: one ordered list of {name, url}, editable from the menu, from Claude
-/// (MCP tools) and from the extension settings. Settings changes apply as a diff, so games
-/// added elsewhere are never dropped and a game removed in the menu stays removed.
+/// The user's games: one ordered list of {name, url}, editable from the games menu and from
+/// Claude (MCP tools). Starts with a few picks the user can remove.
 enum GameList {
     typealias Game = [String: String]
+
+    /// Starter games: each checked to load in Claude's side pane, fit ~400px, and need no login.
+    static let defaults: [Game] = [
+        ["name": "Chess puzzles", "url": "https://lichess.org/training"],
+        ["name": "Murdoku", "url": "https://murdoku.com/"],
+        ["name": "Contexto", "url": "https://contexto.me/"],
+        ["name": "Draw & guess", "url": "https://skribbl.io/"],
+        ["name": "Neal.fun", "url": "https://neal.fun/"],
+    ]
 
     static let maxGames = 60
     private static let maxNameLength = 60
@@ -39,24 +47,5 @@ enum GameList {
         var remaining = games
         let removed = remaining.remove(at: index)
         return (remaining, removed)
-    }
-
-    /// Applies what changed in the settings list since last time.
-    static func applySettings(current: [Game], previous: [Game], next: [Game]) -> [Game] {
-        let nextURLs = Set(next.compactMap { $0["url"] })
-        let previousURLs = Set(previous.compactMap { $0["url"] })
-        var games = current.filter { game in
-            guard let url = game["url"] else { return false }
-            return !(previousURLs.contains(url) && !nextURLs.contains(url))
-        }
-        for game in next {
-            guard let url = game["url"] else { continue }
-            if let index = games.firstIndex(where: { $0["url"] == url }) {
-                if previousURLs.contains(url) { games[index]["name"] = game["name"] }
-            } else if !previousURLs.contains(url) {
-                games = add(game, to: games).games
-            }
-        }
-        return games
     }
 }

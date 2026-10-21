@@ -34,13 +34,14 @@ final class AppController: NSObject, NSApplicationDelegate {
         guard control.start() else { exit(1) }
         control.handler = { [weak self] command, args, reply in self?.handle(command, args, reply) }
         http.dynamicRoutes["/games.json"] = { [weak self] in
-            let games = DispatchQueue.main.sync { self?.gamesWithImages() ?? [] }
-            return (try? JSONSerialization.data(withJSONObject: ["games": games])) ?? Data("{}".utf8)
+            let (games, enabled) = DispatchQueue.main.sync { (self?.gamesWithImages() ?? [], self?.prefs.showGames ?? false) }
+            return (try? JSONSerialization.data(withJSONObject: ["games": enabled ? games : [], "enabled": enabled])) ?? Data("{}".utf8)
         }
         http.postRoutes["/games"] = { [weak self] body in
             let request = (try? JSONSerialization.jsonObject(with: body)) as? [String: Any] ?? [:]
             let result: [String: Any] = DispatchQueue.main.sync {
                 guard let self else { return ["ok": false] }
+                guard self.prefs.showGames else { return ["ok": false, "error": "games are turned off"] }
                 switch request["action"] as? String {
                 case "add":
                     return self.addGame(name: request["name"] as? String, url: request["url"] as? String ?? "")
@@ -51,7 +52,7 @@ final class AppController: NSObject, NSApplicationDelegate {
                 }
             }
             var payload = result
-            payload["games"] = DispatchQueue.main.sync { self?.gamesWithImages() ?? [] }
+            payload["games"] = DispatchQueue.main.sync { self?.prefs.showGames == true ? self?.gamesWithImages() ?? [] : [] }
             return (try? JSONSerialization.data(withJSONObject: payload)) ?? Data("{}".utf8)
         }
         http.start()
@@ -80,6 +81,10 @@ final class AppController: NSObject, NSApplicationDelegate {
             prefs.raw["axPrompted"] = true
             prefs.save()
             _ = AX.isTrusted(prompt: true)
+        }
+        if prefs.raw["games"] == nil {
+            prefs.raw["games"] = GameList.defaults
+            prefs.save()
         }
         findMissingGameImages()
         Log.info("started web=\(Paths.web.path) port=\(http.port) dev=\(devMode) axTrusted=\(AXIsProcessTrusted())")
@@ -180,20 +185,21 @@ final class AppController: NSObject, NSApplicationDelegate {
     // MARK: Commands
 
     private func handle(_ command: String, _ args: [String: Any], _ reply: @escaping ControlServer.Reply) {
+        if !prefs.showGames, ["open_game", "addGame", "removeGame", "listGames"].contains(command) {
+            return reply(["ok": false, "disabled": true])
+        }
         switch command {
         case "show", "hide", "console":
             overlay.send("command", ["name": command])
             reply(["ok": true, "claudeWindow": window != nil])
+        case "setShowGames":
+            prefs.raw["showGames"] = args["on"] as? Bool ?? true
+            prefs.save()
+            overlay.send("prefs", prefs.raw)
+            Log.info("games: show=\(prefs.showGames)")
+            reply(["ok": true])
         case "open_game":
             reply(["ok": true, "url": menuURL, "games": prefs.games.count])
-        case "setGames":
-            let next = (args["games"] as? [[String: Any]] ?? []).compactMap {
-                GameList.normalize(name: $0["name"] as? String, url: $0["url"] as? String ?? "")
-            }
-            let previous = prefs.raw["settingsGames"] as? [[String: String]] ?? []
-            prefs.raw["settingsGames"] = next
-            saveGames(GameList.applySettings(current: prefs.games, previous: previous, next: next))
-            reply(["ok": true])
         case "addGame":
             reply(addGame(name: args["name"] as? String, url: args["url"] as? String ?? ""))
         case "removeGame":
@@ -274,6 +280,10 @@ final class AppController: NSObject, NSApplicationDelegate {
 
     /// Drives Claude's browser pane to the games menu (where games can also be added); on failure the pet says so.
     private func openGames() {
+        guard prefs.showGames else {
+            overlay.send("notice", ["text": "Games are off. Turn on Show games in Claude Desktop → Settings → Extensions → Idle Paws."])
+            return
+        }
         guard let pid = tracker.pid else { return }
         let url = menuURL
         axQueue.async { [weak self] in

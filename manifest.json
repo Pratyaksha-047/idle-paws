@@ -4,7 +4,7 @@
   "display_name": "Idle Paws",
   "version": "0.1.0",
   "description": "A pixel pet (cat, dog or duck) that hangs out on your Claude window, plus a menu of your favourite web games to play while Claude works.",
-  "long_description": "Idle Paws adds a pixel pet that walks, sleeps and plays fetch on top of Claude's input bar, and hops when a Claude Code session finishes. Right-click the pet for the console (pet controls and games); double-click it to play fetch. Add links to the games you like in the extension settings; Play opens them as a menu in the side browser pane. macOS only.",
+  "long_description": "Idle Paws adds a pixel pet that walks, sleeps and plays fetch on top of Claude's input bar, and hops when a Claude Code session finishes. Right-click the pet for its menu; double-click to play fetch. With Show games on, the menu's Games button opens your games in the side browser pane, starting with a few picks you can add to or remove. macOS only.",
   "icon": "icon.png",
   "author": {
     "name": "Pratyaksha Gupta"
@@ -14,35 +14,72 @@
     "entry_point": "server/index.js",
     "mcp_config": {
       "command": "node",
-      "args": ["${__dirname}/server/index.js", "--games", "${user_config.games}"],
+      "args": [
+        "${__dirname}/server/index.js",
+        "--show-games",
+        "${user_config.show_games}"
+      ],
       "env": {
         "IDLE_PAWS_CLIENT": "desktop"
       }
     }
   },
   "user_config": {
-    "games": {
-      "type": "string",
-      "title": "Games",
-      "description": "Links to games you'd like to play while Claude works, opened in Claude's side browser pane. One per entry: a link (https://lichess.org/training) or a named link (Chess puzzles | https://lichess.org/training). Pick sites that work on a phone so they fit the pane. You can also add or remove games any time from the games menu (+ Add game) or by asking Claude.",
-      "multiple": true,
+    "show_games": {
+      "type": "boolean",
+      "title": "Show games",
+      "description": "Add a Games button to the pet's menu, opening a games menu in Claude's side browser pane. It starts with a few games; add your own or remove any from the menu, or ask Claude.",
+      "default": true,
       "required": false
     }
   },
   "tools": [
-    { "name": "open_game", "description": "Open your games menu in the browser pane" },
-    { "name": "add_game", "description": "Add a game link to your games menu" },
-    { "name": "remove_game", "description": "Remove a game from your games menu" },
-    { "name": "list_games", "description": "List your games" },
-    { "name": "open_console", "description": "Open the pet console" },
-    { "name": "pet_show", "description": "Show the pet" },
-    { "name": "pet_hide", "description": "Hide the pet" },
-    { "name": "pet_status", "description": "Overlay status" }
+    {
+      "name": "open_game",
+      "description": "Open your games menu in the browser pane"
+    },
+    {
+      "name": "add_game",
+      "description": "Add a game link to your games menu"
+    },
+    {
+      "name": "remove_game",
+      "description": "Remove a game from your games menu"
+    },
+    {
+      "name": "list_games",
+      "description": "List your games"
+    },
+    {
+      "name": "open_console",
+      "description": "Open the pet console"
+    },
+    {
+      "name": "pet_show",
+      "description": "Show the pet"
+    },
+    {
+      "name": "pet_hide",
+      "description": "Hide the pet"
+    },
+    {
+      "name": "pet_status",
+      "description": "Overlay status"
+    }
   ],
-  "keywords": ["pet", "cat", "dog", "duck", "games", "fun"],
+  "keywords": [
+    "pet",
+    "cat",
+    "dog",
+    "duck",
+    "games",
+    "fun"
+  ],
   "license": "MIT",
   "compatibility": {
-    "platforms": ["darwin"],
+    "platforms": [
+      "darwin"
+    ],
     "runtimes": {
       "node": ">=16.0.0"
     }

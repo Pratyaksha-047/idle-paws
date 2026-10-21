@@ -43,7 +43,7 @@
             </div>
           </div>
         </section>
-        <button class="play" data-act="play">▶ Play games</button>
+        <button class="play" data-act="play">🎮 Games</button>
         <footer class="games-hint">Opens your games in the side browser pane.</footer>`;
       root.appendChild(this.el);
       this.el.addEventListener('click', (e) => this.onClick(e));
@@ -115,9 +115,10 @@
     sync() {
       this.renderSwatches();
       const prefs = this.world.prefs;
-      // With no games yet, the same button opens the menu so games can be added there.
-      const hasGames = Array.isArray(prefs.games) && prefs.games.length > 0;
-      this.el.querySelector('[data-act=play]').textContent = hasGames ? '▶ Play games' : '＋ Add games';
+      // "Show games" (extension setting) decides whether the Games button exists at all.
+      const showGames = prefs.showGames !== false;
+      this.el.querySelector('[data-act=play]').classList.toggle('hidden', !showGames);
+      this.el.querySelector('.games-hint').classList.toggle('hidden', !showGames);
       this.el.querySelectorAll('[data-pref]').forEach((group) => {
         const value = String(prefs[group.dataset.pref]);
         group.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.val === value));

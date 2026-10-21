@@ -9,7 +9,6 @@ const net = require('net');
 const os = require('os');
 const path = require('path');
 const readline = require('readline');
-const { parseGames } = require('./games');
 
 const VERSION = '0.1.0';
 const ROOT = path.resolve(__dirname, '..');
@@ -18,10 +17,10 @@ const APP_EXE = path.join(APP_PATH, 'Contents', 'MacOS', 'IdlePaws');
 const SOCKET_PATH = path.join(os.homedir(), 'Library', 'Application Support', 'idle-paws', 'pets.sock');
 const CLIENT = process.env.IDLE_PAWS_CLIENT || 'unknown';
 const REQUEST_TIMEOUT_MS = 4000;
-// Game links from the extension settings (Claude Desktop passes them after --games). Other
-// clients (Claude Code) pass none and leave the saved list alone.
-const gamesFlag = process.argv.indexOf('--games');
-const CONFIGURED_GAMES = gamesFlag >= 0 ? parseGames(process.argv.slice(gamesFlag + 1)) : null;
+// "Show games" from the extension settings (Claude Desktop passes --show-games true|false).
+// Other clients (Claude Code) pass nothing and leave the saved choice alone.
+const showGamesFlag = process.argv.indexOf('--show-games');
+const SHOW_GAMES = showGamesFlag >= 0 ? process.argv[showGamesFlag + 1] !== 'false' : null;
 
 const log = (...parts) => process.stderr.write(`[idle-paws:${CLIENT}] ${parts.join(' ')}\n`);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -95,7 +94,7 @@ const attach = (s) => {
   });
   s.on('error', () => {});
   s.write(`${JSON.stringify({ id: 0, cmd: 'hello', args: { client: CLIENT } })}\n`);
-  if (CONFIGURED_GAMES) s.write(`${JSON.stringify({ id: 0, cmd: 'setGames', args: { games: CONFIGURED_GAMES } })}\n`);
+  if (SHOW_GAMES !== null) s.write(`${JSON.stringify({ id: 0, cmd: 'setShowGames', args: { on: SHOW_GAMES } })}\n`);
 };
 
 const connect = async ({ launch }) => {
@@ -149,7 +148,7 @@ const TOOLS = [
   {
     name: 'open_game',
     description:
-      "Open the user's games menu (web games they added in the Idle Paws extension settings). Returns a localhost URL; " +
+      "Open the user's Idle Paws games menu (web games they picked). Returns a localhost URL; " +
       'open it in the built-in browser pane (side panel).',
     inputSchema: emptySchema,
   },
@@ -183,12 +182,15 @@ const TOOLS = [
   { name: 'pet_status', description: 'Report Idle Paws overlay status (pet visibility, floor detection, games URL).', inputSchema: emptySchema },
 ];
 
+const GAMES_OFF = 'Games are turned off. The user can turn on "Show games" in Claude Desktop → Settings → Extensions → Idle Paws.';
+
 const text = (value, isError = false) => ({ content: [{ type: 'text', text: value }], ...(isError ? { isError: true } : {}) });
 
 const callTool = async (name, args = {}) => {
   switch (name) {
     case 'open_game': {
       const res = await request('open_game');
+      if (res.disabled) return text(GAMES_OFF, true);
       const empty = res.games ? '' : ' The menu is empty: the user can add games with its "+ Add game" card, or you can use add_game.';
       return text(
         `${res.url}\nOpen this URL in the built-in browser pane (side panel) so the user can pick a game.${empty} ` +
@@ -197,16 +199,19 @@ const callTool = async (name, args = {}) => {
     }
     case 'add_game': {
       const res = await request('addGame', { url: args.url, name: args.name });
+      if (res.disabled) return text(GAMES_OFF, true);
       if (!res.ok) return text(`Couldn't add it: ${res.error}.`, true);
       return text(`Added "${res.game.name}" (${res.game.url}) to the games menu.`);
     }
     case 'remove_game': {
       const res = await request('removeGame', { game: args.game });
+      if (res.disabled) return text(GAMES_OFF, true);
       if (!res.ok) return text(`Couldn't remove it: ${res.error}.`, true);
       return text(`Removed "${res.game.name}" from the games menu.`);
     }
     case 'list_games': {
       const res = await request('listGames');
+      if (res.disabled) return text(GAMES_OFF, true);
       if (!res.games.length) return text('No games yet.');
       return text(res.games.map((g) => `- ${g.name}: ${g.url}`).join('\n'));
     }
