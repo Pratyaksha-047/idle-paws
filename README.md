@@ -34,15 +34,24 @@ in Claude's side browser pane so you have something to do in the meantime.
 
 ## Install
 
-1. Download **`idle-paws.mcpb`** from the [latest release](../../releases/latest).
-2. Double-click it. Claude Desktop opens an install dialog. Click **Install**.
-   - **Show games** is on by default; turn it off if you just want the pet.
-3. macOS asks to let **Idle Paws** use **Accessibility**. Allow it: System Settings → Privacy & Security →
-   Accessibility → Idle Paws.
+1. **Download** `idle-paws.mcpb` from the [latest release](../../releases/latest) (under **Assets**).
+2. **Open it.** Double-click the downloaded file. Claude Desktop opens an install dialog. Click **Install**.
+3. **Choose games or not.** The install dialog has a **Show games** switch, on by default. You can change it
+   any time in Claude Desktop → **Settings → Extensions → Idle Paws**.
+4. **Allow Accessibility.** A few seconds later macOS asks whether **Idle Paws** may use Accessibility.
+   Click **Open System Settings** and turn **Idle Paws** on.
    This lets the pet find Claude's input bar and lets **Games** open Claude's browser pane. Without it the
-   pet still works, but sits near the bottom of the window instead.
+   pet still works, but sits near the bottom of the window.
 
-The pet appears within a few seconds and starts and stops with Claude Desktop.
+That's it. The pet appears on Claude's input bar, and from then on it starts and stops with Claude Desktop.
+
+**If something goes wrong**
+
+- **No pet?** Quit and reopen Claude Desktop, and check the extension is enabled in Settings → Extensions.
+- **No Accessibility prompt?** Open System Settings → Privacy & Security → Accessibility. If **Idle Paws** is
+  listed, turn it on; then quit and reopen Claude Desktop.
+- **"Unidentified developer" warning?** Open System Settings → Privacy & Security, scroll down and click
+  **Open Anyway** next to Idle Paws.
 
 ## Using it
 
@@ -62,10 +71,12 @@ work on a phone fit the side pane best), or **×** on a card to remove it.
 
 ### Optional: react when Claude Code finishes
 
-The pet can hop and say *Done!* when a Claude Code session finishes. This uses Claude Code hooks.
-Set it up from a clone of this repo:
+The pet can hop and say *Done!* when a Claude Code session finishes. This uses Claude Code hooks and
+needs [Node.js](https://nodejs.org). Install Idle Paws first, then run:
 
 ```bash
+git clone https://github.com/Pratyaksha-047/idle-paws.git
+cd idle-paws
 node scripts/install-hooks.mjs          # turn on
 node scripts/install-hooks.mjs --remove # turn off
 ```
